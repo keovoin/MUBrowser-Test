@@ -1,0 +1,62 @@
+const CLASS_DATA = {
+  dark_knight: {
+    name: 'Dark Knight',
+    description: 'A powerful melee warrior with high strength and vitality.',
+    baseHp: 120,
+    baseMp: 30,
+    baseStr: 28,
+    baseAgi: 20,
+    baseVit: 25,
+    baseEne: 10,
+    hpPerVit: 3,
+    mpPerEne: 1,
+    hpPerLevel: 8,
+    mpPerLevel: 2,
+    dmgPerStr: 1.2,
+    dmgPerAgi: 0.3,
+    attackSpeed: 1.0,
+    startingItems: ['short_sword', 'leather_armor', 'small_hp_potion'],
+    sprite: 'dk'
+  },
+  dark_wizard: {
+    name: 'Dark Wizard',
+    description: 'A master of arcane magic with powerful spells.',
+    baseHp: 80,
+    baseMp: 80,
+    baseStr: 12,
+    baseAgi: 15,
+    baseVit: 15,
+    baseEne: 30,
+    hpPerVit: 2,
+    mpPerEne: 3,
+    hpPerLevel: 4,
+    mpPerLevel: 6,
+    dmgPerStr: 0.3,
+    dmgPerAgi: 0.2,
+    dmgPerEne: 1.5,
+    attackSpeed: 0.8,
+    startingItems: ['skull_staff', 'pad_armor', 'small_mp_potion'],
+    sprite: 'dw'
+  },
+  fairy_elf: {
+    name: 'Fairy Elf',
+    description: 'An agile archer with supportive abilities.',
+    baseHp: 90,
+    baseMp: 60,
+    baseStr: 18,
+    baseAgi: 28,
+    baseVit: 18,
+    baseEne: 20,
+    hpPerVit: 2.5,
+    mpPerEne: 2,
+    hpPerLevel: 5,
+    mpPerLevel: 4,
+    dmgPerStr: 0.5,
+    dmgPerAgi: 1.0,
+    attackSpeed: 1.3,
+    startingItems: ['short_bow', 'vine_armor', 'small_hp_potion'],
+    sprite: 'elf'
+  }
+};
+
+module.exports = { CLASS_DATA };

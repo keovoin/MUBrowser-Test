@@ -1,0 +1,11 @@
+{
+  "name": "mu-browser-game",
+  "version": "1.0.0",
+  "description": "Browser-based MU Online game - zero external dependencies",
+  "private": true,
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {}
+}

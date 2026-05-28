@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MU Online - Browser Edition</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-container">
+      <h1 class="game-title">MU ONLINE</h1>
+      <p class="game-subtitle">Browser Edition</p>
+      <div id="auth-form-container">
+        <div class="tabs">
+          <button class="tab active" onclick="showAuthTab('login')">Login</button>
+          <button class="tab" onclick="showAuthTab('register')">Register</button>
+        </div>
+        <form id="login-form" class="auth-form">
+          <input type="text" id="login-username" placeholder="Username" required>
+          <input type="password" id="login-password" placeholder="Password" required>
+          <button type="submit" class="btn-primary">Enter Game</button>
+        </form>
+        <form id="register-form" class="auth-form hidden">
+          <input type="text" id="reg-username" placeholder="Username (3-16 chars)" required>
+          <input type="password" id="reg-password" placeholder="Password (4+ chars)" required>
+          <input type="email" id="reg-email" placeholder="Email (optional)">
+          <button type="submit" class="btn-primary">Create Account</button>
+        </form>
+        <p id="auth-error" class="error-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Select Screen -->
+  <div id="screen-charselect" class="screen">
+    <div class="charselect-container">
+      <h2>Select Character</h2>
+      <div id="character-list"></div>
+      <button class="btn-secondary" onclick="showCreateCharacter()">Create New Character</button>
+      <button class="btn-link" onclick="logout()">Logout</button>
+    </div>
+    <!-- Create Character Modal -->
+    <div id="create-char-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Create Character</h3>
+        <input type="text" id="char-name" placeholder="Character Name (2-12)">
+        <div class="class-select">
+          <div class="class-option selected" data-class="dark_knight">
+            <div class="class-icon dk-icon"></div>
+            <span>Dark Knight</span>
+            <small>Melee warrior</small>
+          </div>
+          <div class="class-option" data-class="dark_wizard">
+            <div class="class-icon dw-icon"></div>
+            <span>Dark Wizard</span>
+            <small>Arcane mage</small>
+          </div>
+          <div class="class-option" data-class="fairy_elf">
+            <div class="class-icon elf-icon"></div>
+            <span>Fairy Elf</span>
+            <small>Agile archer</small>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="createCharacter()">Create</button>
+        <button class="btn-link" onclick="hideCreateCharacter()">Cancel</button>
+        <p id="create-error" class="error-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="screen-game" class="screen">
+    <canvas id="game-canvas"></canvas>
+    <div id="game-ui">
+      <!-- Top bar -->
+      <div id="ui-topbar">
+        <span id="ui-charname"></span>
+        <span id="ui-level"></span>
+        <span id="ui-map"></span>
+        <span id="ui-zen"></span>
+      </div>
+      <!-- HP/MP/EXP bars -->
+      <div id="ui-bars">
+        <div class="bar-container">
+          <div id="hp-bar" class="bar hp"></div>
+          <span id="hp-text" class="bar-text"></span>
+        </div>
+        <div class="bar-container">
+          <div id="mp-bar" class="bar mp"></div>
+          <span id="mp-text" class="bar-text"></span>
+        </div>
+        <div class="bar-container">
+          <div id="exp-bar" class="bar exp"></div>
+          <span id="exp-text" class="bar-text"></span>
+        </div>
+      </div>
+      <!-- Action buttons -->
+      <div id="ui-actions">
+        <button onclick="toggleInventory()" title="Inventory">🎒</button>
+        <button onclick="toggleStats()" title="Stats">📊</button>
+        <button onclick="restCharacter()" title="Rest">💤</button>
+        <button onclick="saveAndQuit()" title="Save & Quit">🚪</button>
+      </div>
+      <!-- Chat/Log -->
+      <div id="ui-log">
+        <div id="log-messages"></div>
+      </div>
+      <!-- Inventory Panel -->
+      <div id="panel-inventory" class="panel hidden">
+        <h3>Inventory <button class="panel-close" onclick="toggleInventory()">✕</button></h3>
+        <div id="equipped-items"></div>
+        <hr>
+        <div id="inventory-items"></div>
+      </div>
+      <!-- Stats Panel -->
+      <div id="panel-stats" class="panel hidden">
+        <h3>Character Stats <button class="panel-close" onclick="toggleStats()">✕</button></h3>
+        <div id="stats-content"></div>
+      </div>
+      <!-- Shop Panel -->
+      <div id="panel-shop" class="panel hidden">
+        <h3>Shop <button class="panel-close" onclick="closeShop()">✕</button></h3>
+        <div id="shop-items"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
