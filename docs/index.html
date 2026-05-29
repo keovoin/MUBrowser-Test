@@ -1127,8 +1127,11 @@ function handleClick(e) {
   const pt = (e.touches && e.touches[0]) ? e.touches[0]
            : (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0]
            : e;
-  const wx = (pt.clientX - rect.left + cam.x) / 4;
-  const wy = (pt.clientY - rect.top + cam.y) / 4;
+  // Screen to isometric world coords (inverse of toIso)
+  const screenX = pt.clientX - rect.left + cam.x;
+  const screenY = pt.clientY - rect.top + cam.y;
+  const wx = (screenX / ISO_SCALE + screenY / (ISO_SCALE * ISO_RATIO)) / 2;
+  const wy = (screenY / (ISO_SCALE * ISO_RATIO) - screenX / ISO_SCALE) / 2;
   // Check monster click
   for (const m of G.mobs) {
     if (!m.alive) continue;
@@ -1149,55 +1152,251 @@ function handleClick(e) {
 
 <script>
 // ===== RENDERER =====
+// ===== ISOMETRIC 2.5D RENDERER =====
+// Converts world (wx, wy) to isometric screen coordinates.
+// Isometric: screen_x = (wx - wy) * tileW/2, screen_y = (wx + wy) * tileH/2
+const ISO_SCALE = 2.5; // world units → pixels multiplier
+const ISO_RATIO = 0.5; // Y squish for isometric (tan ~26.5°)
+function toIso(wx, wy) {
+  return { sx: (wx - wy) * ISO_SCALE, sy: (wx + wy) * ISO_SCALE * ISO_RATIO };
+}
 function getCamera() {
-  return { x: G.char.px*4 - canvas.width/2, y: G.char.py*4 - canvas.height/2 };
+  const iso = toIso(G.char.px, G.char.py);
+  return { x: iso.sx - canvas.width / 2, y: iso.sy - canvas.height / 2 };
 }
 
 function render() {
   const cam = getCamera();
   const c = G.char, map = G.map;
-  ctx.fillStyle = map.bg; ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Ground tiles
-  const ts = 32;
-  const sc = Math.floor(cam.x/ts), sr = Math.floor(cam.y/ts);
-  const ec = sc+Math.ceil(canvas.width/ts)+1, er = sr+Math.ceil(canvas.height/ts)+1;
-  for (let r=sr;r<er;r++) for (let cl=sc;cl<ec;cl++) {
-    if (cl<0||r<0||cl>=128||r>=128) continue;
-    const x=cl*ts-cam.x, y=r*ts-cam.y;
-    const v = G.tileVar[(r*128+cl)%G.tileVar.length];
-    ctx.fillStyle = adjColor(map.bg, v); ctx.fillRect(x,y,ts,ts);
-    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.strokeRect(x,y,ts,ts);
+  // Sky / background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  if (grad && grad.addColorStop) {
+    grad.addColorStop(0, '#0a0a1a'); grad.addColorStop(1, map.bg);
+    ctx.fillStyle = grad;
+  } else { ctx.fillStyle = map.bg; }
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Isometric ground tiles (diamond grid)
+  const tw = 40, th = 20; // tile diamond size in pixels
+  const startCol = Math.floor((cam.x - canvas.width) / tw) - 2;
+  const endCol = Math.ceil((cam.x + canvas.width * 2) / tw) + 2;
+  const startRow = Math.floor((cam.y - canvas.height) / (th)) - 2;
+  const endRow = Math.ceil((cam.y + canvas.height * 2) / (th)) + 2;
+  for (let r = startRow; r < endRow; r++) {
+    for (let cl = startCol; cl < endCol; cl++) {
+      // Convert iso grid back to world to check bounds
+      const worldX = (cl + r); const worldY = (r - cl);
+      if (worldX < 0 || worldY < 0 || worldX >= 256 || worldY >= 256) continue;
+      const sx = cl * tw - cam.x; const sy = r * th - cam.y;
+      if (sx < -tw * 2 || sx > canvas.width + tw * 2 || sy < -th * 2 || sy > canvas.height + th * 2) continue;
+      const v = G.tileVar[((worldX * 131 + worldY * 37) & 0xFFFF) % G.tileVar.length];
+      ctx.fillStyle = adjColor(map.bg, v);
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - th / 2);
+      ctx.lineTo(sx + tw / 2, sy);
+      ctx.lineTo(sx, sy + th / 2);
+      ctx.lineTo(sx - tw / 2, sy);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
   }
-  // Safe zone
-  if (map.safe) { const s=map.safe; ctx.fillStyle='rgba(100,200,100,0.06)'; ctx.fillRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); ctx.strokeStyle='rgba(100,200,100,0.25)'; ctx.strokeRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); }
-  // Portals
-  G.portalAnim += 0.05;
-  map.portals.forEach(p => { const sx=p.x*4-cam.x, sy=p.y*4-cam.y, gl=Math.sin(G.portalAnim)*0.3+0.7; ctx.beginPath(); ctx.arc(sx,sy,20,0,Math.PI*2); ctx.fillStyle=`rgba(100,150,255,${gl*0.4})`; ctx.fill(); ctx.strokeStyle=`rgba(150,200,255,${gl})`; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(p.label,sx,sy+30); });
-  // NPCs
-  map.npcs.forEach(n => { const sx=n.x*4-cam.x, sy=n.y*4-cam.y; ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2); ctx.fillStyle='#44aaff'; ctx.fill(); ctx.strokeStyle='#88ccff'; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#88ccff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(n.name,sx,sy-20); ctx.fillStyle='#ffff00'; ctx.font='bold 14px sans-serif'; ctx.fillText('!',sx,sy+5); });
-  // Monsters
-  G.mobs.forEach(m => { if (!m.alive) return; const sx=m.x*4-cam.x, sy=m.y*4-cam.y; if(sx<-40||sx>canvas.width+40||sy<-40||sy>canvas.height+40) return; ctx.beginPath(); ctx.arc(sx,sy,12,0,Math.PI*2); ctx.fillStyle=monColor(m.level); ctx.fill(); if(G.target===m.uid){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.stroke();} ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(m.name,sx,sy-18); const hp=m.curHp/m.hp; ctx.fillStyle='#333';ctx.fillRect(sx-15,sy-14,30,4); ctx.fillStyle=hp>0.5?'#0c0':hp>0.25?'#cc0':'#c00';ctx.fillRect(sx-15,sy-14,30*hp,4); });
-  // Companion "players" (multiplayer feel) - drawn like players with name + Lv.X
-  (G.companions||[]).forEach(comp => {
-    const cx2=comp.x*4-cam.x, cy2=comp.y*4-cam.y;
-    if(cx2<-40||cx2>canvas.width+40||cy2<-40||cy2>canvas.height+40) return;
-    if(comp.swing>0){ ctx.beginPath(); ctx.arc(cx2,cy2,18,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,150,0.5)'; ctx.lineWidth=2; ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(cx2,cy2,13,0,Math.PI*2); ctx.fillStyle=comp.color; ctx.fill(); ctx.strokeStyle='#9fd3ff'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.fillText('Lv.'+comp.level,cx2,cy2-30);
-    ctx.fillStyle='#9fd3ff'; ctx.font='bold 11px sans-serif'; ctx.fillText(comp.name,cx2,cy2-19);
+
+  // Safe zone (isometric diamond overlay)
+  if (map.safe) {
+    const s = map.safe;
+    const corners = [[s.x1,s.y1],[s.x2,s.y1],[s.x2,s.y2],[s.x1,s.y2]].map(([x,y])=>{const i=toIso(x,y);return[i.sx-cam.x,i.sy-cam.y];});
+    ctx.beginPath(); ctx.moveTo(corners[0][0],corners[0][1]);
+    corners.slice(1).forEach(([x,y])=>ctx.lineTo(x,y)); ctx.closePath();
+    ctx.fillStyle='rgba(100,200,100,0.06)'; ctx.fill();
+    ctx.strokeStyle='rgba(100,200,100,0.3)'; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  // Portals (animated glow diamonds)
+  G.portalAnim += 0.04;
+  map.portals.forEach(p => {
+    const iso = toIso(p.x, p.y);
+    const sx = iso.sx - cam.x, sy = iso.sy - cam.y;
+    const gl = Math.sin(G.portalAnim) * 0.3 + 0.7;
+    ctx.beginPath(); ctx.arc(sx, sy - 10, 16, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(80,140,255,${gl * 0.4})`; ctx.fill();
+    ctx.strokeStyle = `rgba(140,200,255,${gl})`; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#cef'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(p.label, sx, sy + 14);
   });
+
+  // Collect all drawable entities for depth sorting (painter's algorithm: higher Y = closer = drawn last)
+  const entities = [];
+  // NPCs
+  map.npcs.forEach(n => entities.push({ type: 'npc', wx: n.x, wy: n.y, data: n }));
+  // Monsters
+  G.mobs.forEach(m => { if (m.alive) entities.push({ type: 'mob', wx: m.x, wy: m.y, data: m }); });
+  // Companions
+  (G.companions || []).forEach(comp => entities.push({ type: 'comp', wx: comp.x, wy: comp.y, data: comp }));
   // Player
-  const px=c.px*4-cam.x, py=c.py*4-cam.y;
-  ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.fillStyle=CLASS_DATA[c.cls].color; ctx.fill(); ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ffd700'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillText(c.name,px,py-20);
-  ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.fillText(c.level,px,py+4);
+  entities.push({ type: 'player', wx: c.px, wy: c.py, data: c });
+
+  // Sort by depth (wx + wy gives isometric depth)
+  entities.sort((a, b) => (a.wx + a.wy) - (b.wx + b.wy));
+
+  // Draw entities
+  entities.forEach(ent => {
+    const iso = toIso(ent.wx, ent.wy);
+    const sx = iso.sx - cam.x, sy = iso.sy - cam.y;
+    if (sx < -60 || sx > canvas.width + 60 || sy < -60 || sy > canvas.height + 60) return;
+
+    if (ent.type === 'npc') {
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Body (pixel-art NPC: blue robe)
+      drawPixelChar(sx, sy, '#44aaff', '#2266aa', 14);
+      // Name + exclamation
+      ctx.fillStyle = '#88ccff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(ent.data.name, sx, sy - 26);
+      ctx.fillStyle = '#ffff00'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('!', sx, sy - 14);
+    }
+    else if (ent.type === 'mob') {
+      const m = ent.data;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // Target ring
+      if (G.target === m.uid) {
+        ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(sx, sy + 2, 12, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Monster body (pixel-art: colored by level)
+      const mc = monColor(m.level);
+      drawPixelMob(sx, sy, mc, m.level);
+      // Name + HP bar
+      ctx.fillStyle = '#fff'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(m.name, sx, sy - 22);
+      const hp = m.curHp / m.hp;
+      ctx.fillStyle = '#222'; ctx.fillRect(sx - 14, sy - 18, 28, 3);
+      ctx.fillStyle = hp > 0.5 ? '#0c0' : hp > 0.25 ? '#cc0' : '#c00';
+      ctx.fillRect(sx - 14, sy - 18, 28 * hp, 3);
+    }
+    else if (ent.type === 'comp') {
+      const comp = ent.data;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // Swing effect
+      if (comp.swing > 0) {
+        ctx.strokeStyle = 'rgba(255,255,150,0.5)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sx, sy - 6, 14, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Body
+      drawPixelChar(sx, sy, comp.color, adjColor(comp.color, -0.3), 12);
+      // Name + Level
+      ctx.fillStyle = '#9fd3ff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(comp.name, sx, sy - 24);
+      ctx.fillStyle = '#fff'; ctx.font = '8px sans-serif';
+      ctx.fillText('Lv.' + comp.level, sx, sy - 16);
+    }
+    else if (ent.type === 'player') {
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 3, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Player body (slightly larger, golden outline)
+      drawPixelChar(sx, sy, CLASS_DATA[c.cls].color, adjColor(CLASS_DATA[c.cls].color, -0.3), 15);
+      // Golden highlight ring
+      ctx.strokeStyle = 'rgba(255,215,0,0.5)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 11, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      // Name + Level
+      ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(c.name, sx, sy - 28);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('Lv.' + c.level, sx, sy - 18);
+    }
+  });
+
   // Move indicator
-  if (G.moveTo) { const tx=G.moveTo.x*4-cam.x, ty=G.moveTo.y*4-cam.y; ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke(); }
-  // Damage numbers
-  G.dmgNums = G.dmgNums.filter(d => { d.life--; d.dy-=0.5; const sx=d.x*4-cam.x, sy=d.y*4-cam.y+d.dy; ctx.globalAlpha=d.life/60; ctx.fillStyle=d.color; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.fillText(d.val,sx,sy); ctx.globalAlpha=1; return d.life>0; });
+  if (G.moveTo) {
+    const mIso = toIso(G.moveTo.x, G.moveTo.y);
+    const mx = mIso.sx - cam.x, my = mIso.sy - cam.y;
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(mx, my, 6, 3, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Damage numbers (float up in isometric space)
+  G.dmgNums = G.dmgNums.filter(d => {
+    d.life--; d.dy -= 0.6;
+    const dIso = toIso(d.x, d.y);
+    const sx = dIso.sx - cam.x, sy = dIso.sy - cam.y + d.dy;
+    ctx.globalAlpha = d.life / 60;
+    ctx.fillStyle = d.color; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(d.val, sx, sy);
+    ctx.globalAlpha = 1;
+    return d.life > 0;
+  });
 }
 
-function adjColor(hex, amt) { const n=parseInt(hex.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.max(0,Math.min(255,Math.floor(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.floor(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.floor(b*(1+amt)))); return `rgb(${r},${g},${b})`; }
+// Pixel-art character sprite (head + body + legs, ~15px tall)
+function drawPixelChar(sx, sy, bodyColor, darkColor, h) {
+  const s = h / 15; // scale factor
+  // Legs
+  ctx.fillStyle = darkColor;
+  ctx.fillRect(sx - 3 * s, sy - 2 * s, 2 * s, 4 * s);
+  ctx.fillRect(sx + 1 * s, sy - 2 * s, 2 * s, 4 * s);
+  // Body
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(sx - 4 * s, sy - 8 * s, 8 * s, 7 * s);
+  // Shoulders
+  ctx.fillRect(sx - 5 * s, sy - 8 * s, 2 * s, 3 * s);
+  ctx.fillRect(sx + 3 * s, sy - 8 * s, 2 * s, 3 * s);
+  // Head
+  ctx.fillStyle = '#ffe0b0';
+  ctx.fillRect(sx - 3 * s, sy - 12 * s, 6 * s, 4 * s);
+  // Hair/helm top
+  ctx.fillStyle = darkColor;
+  ctx.fillRect(sx - 3 * s, sy - 13 * s, 6 * s, 2 * s);
+}
+
+// Pixel-art monster sprite (varies by level tier)
+function drawPixelMob(sx, sy, color, level) {
+  const dark = adjColor(color, -0.3);
+  if (level <= 5) {
+    // Small critter (spider/bug shape)
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 5, sy - 6, 10, 6);
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 7, sy - 4, 3, 2); ctx.fillRect(sx + 4, sy - 4, 3, 2); // legs
+    ctx.fillRect(sx - 6, sy - 7, 2, 2); ctx.fillRect(sx + 4, sy - 7, 2, 2); // eyes
+  } else if (level <= 12) {
+    // Medium humanoid
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 3, sy - 2, 2, 4); ctx.fillRect(sx + 1, sy - 2, 2, 4);
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 4, sy - 9, 8, 7);
+    ctx.fillStyle = '#ddd';
+    ctx.fillRect(sx - 2, sy - 12, 4, 3); // head
+  } else if (level <= 20) {
+    // Large beast
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 7, sy - 10, 14, 10);
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 8, sy - 13, 4, 4); // horn/head
+    ctx.fillRect(sx + 4, sy - 13, 4, 4);
+    ctx.fillRect(sx - 6, sy - 1, 3, 3); ctx.fillRect(sx + 3, sy - 1, 3, 3); // legs
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(sx - 3, sy - 8, 2, 2); ctx.fillRect(sx + 1, sy - 8, 2, 2); // eyes
+  } else {
+    // Boss / elite (bigger, more detail)
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 9, sy - 14, 18, 14);
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 7, sy - 12, 14, 10);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(sx - 4, sy - 16, 8, 3); // crown
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(sx - 3, sy - 9, 2, 2); ctx.fillRect(sx + 1, sy - 9, 2, 2); // glowing eyes
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 8, sy - 1, 3, 4); ctx.fillRect(sx + 5, sy - 1, 3, 4); // legs
+  }
+}
+
+function adjColor(hex, amt) { let h=hex; if(h.startsWith('rgb')){const m=h.match(/(\d+)/g);if(m)h='#'+m.slice(0,3).map(v=>(+v).toString(16).padStart(2,'0')).join('');else return h;} const n=parseInt(h.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.max(0,Math.min(255,Math.floor(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.floor(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.floor(b*(1+amt)))); return `rgb(${r},${g},${b})`; }
 function monColor(lv) { if(lv<=3) return '#88cc44'; if(lv<=8) return '#cc8844'; if(lv<=15) return '#cc4444'; if(lv<=22) return '#8844cc'; return '#cc44cc'; }
 function addDmg(x,y,val,color) { G.dmgNums.push({x,y,val,color,life:60,dy:0}); }
 
