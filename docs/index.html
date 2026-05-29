@@ -592,7 +592,7 @@ function deleteChar(id) {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [], autoAttack: false, autoLevel: false };
+let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [], autoAttack: false, autoLevel: false, afk: false };
 let canvas, ctx;
 
 function enterGame(charId) {
@@ -643,7 +643,9 @@ function buildActions() {
     <button onclick="togglePanel('inv')" title="Inventory" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🎒</button>
     <button onclick="togglePanel('stats')" title="Stats" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">📊</button>
     <button id="btn-auto-atk" onclick="toggleAutoAttack()" title="Auto-Attack (auto-target & fight)" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">⚔️</button>
+    <button id="btn-afk" onclick="toggleAFK()" title="AFK Mode (auto-attack + auto-level + auto-potion)" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:14px;cursor:pointer;font-weight:bold;color:#ccc;">AFK</button>
     <button onclick="doRest()" title="Rest" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">💤</button>
+    <button onclick="togglePanel('admin')" title="Admin Panel" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">👑</button>
     <button onclick="saveAndQuit()" title="Save & Quit" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🚪</button>
   `;
 }
@@ -692,6 +694,8 @@ function update(dt) {
   }
   // Companion bots: follow the player, only engage monsters near the player
   updateCompanions(dt);
+  // AFK auto-potion
+  afkAutoPotion();
   // Monster respawn
   G.mobs.forEach(m => { if (!m.alive) { m.respawn -= dt; if (m.respawn <= 0) { m.alive = true; m.curHp = m.hp; m.x = m.spawnX; m.y = m.spawnY; } } });
   // Portal check
@@ -834,6 +838,109 @@ function autoAllocate() {
   if (main === 'ene') c.maxMp = cd.baseMp + (c.ene - cd.baseEne) * cd.mpPerEne;
   gameLog('Auto-allocated ' + n + ' point' + (n > 1 ? 's' : '') + ' to ' + main.toUpperCase(), 'system');
   if (currentPanel === 'stats') renderStats();
+  updateUI(); saveGame();
+}
+
+// ===== AFK MODE (auto-attack + auto-level + auto-potion) =====
+function toggleAFK() {
+  G.afk = !G.afk;
+  if (G.afk) { G.autoAttack = true; G.autoLevel = true; }
+  else { G.autoAttack = false; }
+  const b = document.getElementById('btn-afk');
+  if (b) { b.style.background = G.afk ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b.style.borderColor = G.afk ? '#6f6' : '#444'; b.style.color = G.afk ? '#6f6' : '#ccc'; }
+  const b2 = document.getElementById('btn-auto-atk');
+  if (b2) { b2.style.background = G.autoAttack ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b2.style.borderColor = G.autoAttack ? '#6f6' : '#444'; }
+  gameLog('AFK Mode ' + (G.afk ? 'ON (auto-attack + auto-level + auto-potion)' : 'OFF'), 'system');
+  if (currentPanel === 'stats') renderStats();
+}
+// AFK auto-potion: use HP potions when health drops below 40%
+function afkAutoPotion() {
+  if (!G.afk) return;
+  const c = G.char, mhp = maxHpOf(c);
+  if (c.hp < mhp * 0.4) {
+    const pot = G.inv.find(i => !i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].healHp);
+    if (pot) { useItem(pot.uid); }
+  }
+}
+
+// ===== ADMIN PANEL =====
+function renderAdmin() {
+  const items = Object.keys(ITEMS);
+  let html = `<h3 style="color:#ffd700;margin-bottom:8px;">Admin Panel 👑 <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
+  // Give item section with searchable dropdown
+  html += `<div style="color:#aaa;font-size:11px;margin:6px 0 4px;">Give Item to Character:</div>`;
+  html += `<input type="text" id="admin-item-search" placeholder="Search items..." oninput="filterAdminItems()" style="width:100%;padding:8px;background:#111;border:1px solid #444;color:#fff;border-radius:4px;font-size:12px;margin-bottom:4px;">`;
+  html += `<div id="admin-item-list" style="max-height:180px;overflow-y:auto;border:1px solid #333;border-radius:4px;background:#0e0e1e;">`;
+  items.forEach(id => {
+    const it = ITEMS[id];
+    const ic = it.img ? `<img src="${it.img}" style="width:20px;height:20px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:4px;" onerror="this.style.display='none'">` : '';
+    html += `<div class="adm-item" data-name="${it.name.toLowerCase()}" style="display:flex;align-items:center;gap:4px;padding:5px 8px;border-bottom:1px solid #1a1a2e;cursor:pointer;font-size:11px;" onclick="adminGiveItem('${id}')" onmouseover="this.style.background='#1a2a3a'" onmouseout="this.style.background=''">${ic}<span style="flex:1;color:#ddd;">${it.name}</span><small style="color:#888;">${it.type}${it.slot?' / '+it.slot:''}</small></div>`;
+  });
+  html += `</div>`;
+  html += `<div style="color:#aaa;font-size:10px;margin-top:4px;">Tap an item to add it to your bag (with random options for equipment).</div>`;
+  // Quick admin actions
+  html += `<hr style="border-color:#222;margin:12px 0;">`;
+  html += `<div style="color:#aaa;font-size:11px;margin-bottom:6px;">Quick Actions:</div>`;
+  html += `<div style="display:flex;flex-wrap:wrap;gap:4px;">`;
+  html += `<button onclick="adminAddZen(10000)" style="padding:5px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:11px;">+10k Zen</button>`;
+  html += `<button onclick="adminAddZen(100000)" style="padding:5px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:11px;">+100k Zen</button>`;
+  html += `<button onclick="adminAddExp()" style="padding:5px 10px;background:#16213e;border:1px solid #88ccff;color:#88ccff;border-radius:4px;cursor:pointer;font-size:11px;">+1 Level</button>`;
+  html += `<button onclick="adminAddStats(50)" style="padding:5px 10px;background:#16213e;border:1px solid #8f8;color:#8f8;border-radius:4px;cursor:pointer;font-size:11px;">+50 Stat Pts</button>`;
+  html += `<button onclick="adminHeal()" style="padding:5px 10px;background:#16213e;border:1px solid #f88;color:#f88;border-radius:4px;cursor:pointer;font-size:11px;">Full Heal</button>`;
+  html += `</div>`;
+  document.getElementById('panel-right').innerHTML = html;
+}
+
+function filterAdminItems() {
+  const q = (document.getElementById('admin-item-search').value || '').toLowerCase();
+  const list = document.getElementById('admin-item-list');
+  if (!list) return;
+  const items = list.querySelectorAll ? Array.from(list.querySelectorAll('.adm-item') || []) : [];
+  // Fallback: re-render with filter if querySelectorAll not available in env
+  if (!items.length) return;
+  items.forEach(el => { el.style.display = (!q || el.dataset.name.includes(q)) ? 'flex' : 'none'; });
+}
+
+function adminGiveItem(itemId) {
+  const uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const opts = rollItemOptions(itemId);
+  const li = Object.assign({ uid, itemId, equipped: 0 }, opts);
+  G.inv.push(li);
+  const it = ITEMS[itemId];
+  gameLog('Admin: gave ' + itemLabel(li) + (isExcellent(li) ? ' [Excellent]' : ''), 'system');
+  saveGame();
+}
+
+function adminAddZen(amount) {
+  G.char.zen += amount;
+  gameLog('Admin: +' + amount.toLocaleString() + ' Zen', 'system');
+  updateUI(); saveGame();
+}
+
+function adminAddExp() {
+  const needed = expForLevel(G.char.level);
+  G.char.exp = needed; // triggers level-up on next kill, or we can force it:
+  G.char.level++; G.char.statPts += 5;
+  const cd = CLASS_DATA[G.char.cls];
+  G.char.maxHp += cd.hpPerLevel; G.char.maxMp += cd.mpPerLevel;
+  G.char.hp = maxHpOf(G.char); G.char.mp = maxMpOf(G.char);
+  G.char.exp = 0;
+  if (G.autoLevel) autoAllocate();
+  gameLog('Admin: Level up! Now Lv.' + G.char.level, 'system');
+  updateUI(); saveGame();
+  if (currentPanel === 'admin') renderAdmin();
+}
+
+function adminAddStats(n) {
+  G.char.statPts += n;
+  gameLog('Admin: +' + n + ' stat points', 'system');
+  updateUI(); saveGame();
+}
+
+function adminHeal() {
+  G.char.hp = maxHpOf(G.char);
+  G.char.mp = maxMpOf(G.char);
+  gameLog('Admin: Full heal!', 'system');
   updateUI(); saveGame();
 }
 
@@ -1155,6 +1262,7 @@ function togglePanel(type) {
   panel.classList.remove('hidden');
   if (type === 'inv') renderInventory();
   else if (type === 'stats') renderStats();
+  else if (type === 'admin') renderAdmin();
 }
 
 // ----- Item display helpers -----
