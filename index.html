@@ -5,31 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MU Online - Browser Edition</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Press+Start+2P&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; }
+body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8; overflow: hidden; width: 100vw; height: 100vh; }
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 .screen.active { display: flex; }
 .hidden { display: none !important; }
-.auth-container { margin: auto; text-align: center; background: rgba(20,20,40,0.95); padding: 40px; border-radius: 12px; border: 1px solid #333; min-width: 360px; }
-.game-title { font-size: 48px; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.5); letter-spacing: 4px; }
-.game-subtitle { color: #888; margin-bottom: 30px; }
-.tabs { display: flex; gap: 0; margin-bottom: 20px; }
-.tab { flex: 1; padding: 10px; background: #1a1a2e; border: 1px solid #333; cursor: pointer; color: #aaa; transition: 0.2s; }
-.tab.active { background: #16213e; color: #ffd700; border-color: #ffd700; }
-.auth-form { display: flex; flex-direction: column; gap: 12px; }
-.auth-form input { padding: 12px; background: #1a1a2e; border: 1px solid #333; color: #fff; border-radius: 4px; font-size: 14px; }
-.auth-form input:focus { border-color: #ffd700; outline: none; }
-.btn-primary { padding: 12px; background: linear-gradient(135deg,#ffd700,#ff8c00); border: none; color: #000; font-weight: bold; font-size: 16px; cursor: pointer; border-radius: 4px; }
-.btn-primary:hover { transform: scale(1.02); }
-.btn-secondary { padding: 10px 20px; background: #16213e; border: 1px solid #ffd700; color: #ffd700; cursor: pointer; border-radius: 4px; margin: 10px; }
-.btn-link { background: none; border: none; color: #888; cursor: pointer; margin: 10px; text-decoration: underline; }
-.error-msg { color: #ff4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
 </style>
 </head>
 <body>
 <!-- Auth Screen -->
 <div id="screen-auth" class="screen active">
-<div class="auth-container">
+<canvas id="auth-particles" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+<div class="auth-container" id="auth-box">
 <h1 class="game-title">MU ONLINE</h1>
 <p class="game-subtitle">Browser Edition</p>
 <div class="tabs">
@@ -53,17 +41,18 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 
 <!-- Character Select Screen -->
 <div id="screen-charselect" class="screen">
-<div class="auth-container" style="min-width:500px;">
-<h2 style="color:#ffd700;margin-bottom:20px;">Select Character</h2>
+<canvas id="charsel-particles" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+<div class="auth-container charsel-box" id="charsel-box">
+<h2 class="section-title">Select Character</h2>
 <div id="character-list"></div>
 <button class="btn-secondary" onclick="showCreateModal()">Create New Character</button>
 <button class="btn-link" onclick="doLogout()">Logout</button>
 </div>
-<div id="create-modal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;z-index:100;">
-<div style="margin:auto;background:#14142a;padding:30px;border-radius:12px;border:1px solid #333;min-width:400px;text-align:center;">
-<h3 style="color:#ffd700;margin-bottom:15px;">Create Character</h3>
-<input type="text" id="char-name" placeholder="Character Name (2-12)" style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;color:#fff;border-radius:4px;">
-<div id="class-select" style="display:flex;gap:10px;margin:15px 0;"></div>
+<div id="create-modal" class="hidden modal-overlay">
+<div class="modal-box">
+<h3 class="section-title">Create Character</h3>
+<input type="text" id="char-name" placeholder="Character Name (2-12)" class="modal-input">
+<div id="class-select" class="class-select-grid"></div>
 <button class="btn-primary" onclick="doCreateChar()">Create</button>
 <button class="btn-link" onclick="hideCreateModal()">Cancel</button>
 <p id="create-error" class="error-msg"></p>
@@ -71,39 +60,288 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 </div>
 </div>
 
-
 <!-- Game Screen -->
 <div id="screen-game" class="screen">
 <canvas id="game-canvas"></canvas>
 <div id="game-ui" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
-<div id="ui-topbar" style="pointer-events:auto;position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.85);padding:8px 16px;display:flex;gap:20px;font-size:13px;align-items:center;">
-<span id="ui-charname" style="color:#ffd700;font-weight:bold;"></span>
-<span id="ui-level" style="color:#88ccff;"></span>
-<span id="ui-class" style="color:#aaa;"></span>
-<span id="ui-map" style="color:#88ff88;"></span>
-<span id="ui-zen" style="color:#ffcc00;margin-left:auto;"></span>
+<div id="ui-topbar">
+<div class="topbar-portrait" id="topbar-portrait"></div>
+<span id="ui-charname"></span>
+<span id="ui-level"></span>
+<span id="ui-class"></span>
+<span id="ui-map"></span>
+<span id="ui-zen"></span>
 </div>
-<div id="ui-bars" style="pointer-events:auto;position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;">
-<div style="position:relative;width:180px;height:20px;background:#111;border:1px solid #333;border-radius:3px;overflow:hidden;">
-<div id="hp-bar" style="height:100%;background:linear-gradient(90deg,#cc0000,#ff3333);width:100%;transition:width 0.3s;"></div>
-<span id="hp-text" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;"></span>
+<div id="ui-bars">
+<div class="bar-container hp-container">
+<span class="bar-label">HP</span>
+<div class="bar-frame"><div id="hp-bar" class="bar-fill hp-fill"></div><span id="hp-text" class="bar-text"></span></div>
 </div>
-<div style="position:relative;width:180px;height:20px;background:#111;border:1px solid #333;border-radius:3px;overflow:hidden;">
-<div id="mp-bar" style="height:100%;background:linear-gradient(90deg,#0000cc,#3333ff);width:100%;transition:width 0.3s;"></div>
-<span id="mp-text" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;"></span>
+<div class="bar-container mp-container">
+<span class="bar-label">MP</span>
+<div class="bar-frame"><div id="mp-bar" class="bar-fill mp-fill"></div><span id="mp-text" class="bar-text"></span></div>
 </div>
-<div style="position:relative;width:180px;height:20px;background:#111;border:1px solid #333;border-radius:3px;overflow:hidden;">
-<div id="exp-bar" style="height:100%;background:linear-gradient(90deg,#cccc00,#ffff33);width:0%;transition:width 0.3s;"></div>
-<span id="exp-text" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;"></span>
-</div>
-</div>
-<div id="ui-actions" style="pointer-events:auto;position:absolute;bottom:10px;right:10px;display:flex;gap:6px;"></div>
-<div id="ui-log" style="pointer-events:auto;position:absolute;bottom:40px;left:10px;width:320px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.75);border-radius:4px;padding:6px;font-size:12px;">
-<div id="log-messages"></div>
-</div>
-<div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100vh - 100px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;"></div>
+<div class="bar-container exp-container">
+<span class="bar-label">EXP</span>
+<div class="bar-frame"><div id="exp-bar" class="bar-fill exp-fill"></div><span id="exp-text" class="bar-text"></span></div>
 </div>
 </div>
+<div id="ui-actions"></div>
+<div id="ui-log"><div id="log-messages"></div></div>
+<div id="panel-right" class="hidden"></div>
+</div>
+</div>
+
+
+<style>
+/* ===== AUTH SCREEN ===== */
+.auth-container {
+  margin: auto; text-align: center; position: relative; z-index: 10;
+  background: rgba(10, 8, 20, 0.92); padding: 40px 50px; border-radius: 4px;
+  border: 2px solid #8b6914; min-width: 380px;
+  box-shadow: 0 0 40px rgba(139,105,20,0.3), inset 0 0 60px rgba(0,0,0,0.5);
+}
+.auth-container::before, .auth-container::after {
+  content: ''; position: absolute; width: 30px; height: 30px;
+  border-color: #ffd700; border-style: solid;
+}
+.auth-container::before { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.auth-container::after { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+.game-title {
+  font-family: 'MedievalSharp', serif; font-size: 52px; color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.3), 0 2px 4px #000;
+  letter-spacing: 6px; margin-bottom: 4px;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+@keyframes titleGlow {
+  from { text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.3); }
+  to { text-shadow: 0 0 30px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.5), 0 0 80px rgba(255,140,0,0.3); }
+}
+.game-subtitle { color: #8b7355; margin-bottom: 28px; font-size: 14px; letter-spacing: 3px; }
+.tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 4px; overflow: hidden; border: 1px solid #3a2a0a; }
+.tab {
+  flex: 1; padding: 12px; background: #0f0d18; border: none; cursor: pointer;
+  color: #6b5b3a; font-family: 'MedievalSharp', serif; font-size: 15px; transition: 0.3s;
+}
+.tab.active { background: #1a1428; color: #ffd700; box-shadow: inset 0 -2px 0 #ffd700; }
+.tab:hover { color: #daa520; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form input {
+  padding: 14px 16px; background: #0a0812; border: 1px solid #2a2040; color: #e0d8c8;
+  border-radius: 4px; font-size: 14px; font-family: 'MedievalSharp', serif;
+  transition: 0.3s;
+}
+.auth-form input:focus {
+  border-color: #ffd700; outline: none;
+  box-shadow: inset 0 0 15px rgba(255,215,0,0.1), 0 0 8px rgba(255,215,0,0.2);
+}
+.btn-primary {
+  padding: 14px; background: linear-gradient(135deg, #8b6914, #ffd700, #8b6914);
+  border: 1px solid #ffd700; color: #1a0f00; font-weight: bold; font-size: 16px;
+  cursor: pointer; border-radius: 4px; font-family: 'MedievalSharp', serif;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3); transition: 0.3s;
+  box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+}
+.btn-primary:hover { transform: scale(1.03); box-shadow: 0 4px 25px rgba(255,215,0,0.5); }
+.btn-secondary {
+  padding: 12px 24px; background: rgba(20,16,30,0.9); border: 1px solid #8b6914;
+  color: #ffd700; cursor: pointer; border-radius: 4px; margin: 10px;
+  font-family: 'MedievalSharp', serif; font-size: 14px; transition: 0.3s;
+}
+.btn-secondary:hover { background: rgba(40,30,60,0.9); box-shadow: 0 0 15px rgba(255,215,0,0.2); }
+.btn-link { background: none; border: none; color: #6b5b3a; cursor: pointer; margin: 10px; font-family: 'MedievalSharp', serif; }
+.btn-link:hover { color: #ffd700; }
+.error-msg { color: #ff4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+
+/* ===== CHARACTER SELECT ===== */
+.charsel-box { min-width: 560px; }
+.section-title { color: #ffd700; margin-bottom: 20px; font-family: 'MedievalSharp', serif; font-size: 24px; text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+.char-card {
+  display: inline-block; background: rgba(15,12,25,0.95); border: 2px solid #333;
+  padding: 18px; border-radius: 8px; cursor: pointer; min-width: 150px; margin: 8px;
+  transition: 0.3s; position: relative; overflow: hidden;
+}
+.char-card:hover { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.3); transform: translateY(-2px); }
+.char-card .char-icon {
+  width: 50px; height: 50px; border-radius: 50%; margin: 0 auto 10px;
+  animation: iconPulse 2s ease-in-out infinite;
+}
+@keyframes iconPulse { 0%,100% { box-shadow: 0 0 10px currentColor; } 50% { box-shadow: 0 0 25px currentColor; } }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; z-index: 100; }
+.modal-box {
+  margin: auto; background: rgba(10,8,20,0.97); padding: 36px; border-radius: 8px;
+  border: 2px solid #8b6914; min-width: 440px; text-align: center;
+  box-shadow: 0 0 50px rgba(139,105,20,0.3);
+}
+.modal-input {
+  width: 100%; padding: 12px; background: #0a0812; border: 1px solid #2a2040;
+  color: #e0d8c8; border-radius: 4px; font-family: 'MedievalSharp', serif; font-size: 14px;
+  margin-bottom: 16px;
+}
+.modal-input:focus { border-color: #ffd700; outline: none; box-shadow: inset 0 0 15px rgba(255,215,0,0.1); }
+.class-select-grid { display: flex; gap: 12px; margin: 16px 0; }
+.cls-opt {
+  flex: 1; padding: 14px 10px; background: #0f0d18; border: 2px solid #2a2040;
+  border-radius: 8px; cursor: pointer; text-align: center; transition: 0.3s;
+}
+.cls-opt:hover { border-color: #6b5b3a; }
+.cls-opt.selected { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+
+/* ===== GAME HUD ===== */
+#ui-topbar {
+  pointer-events: auto; position: absolute; top: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, rgba(10,8,18,0.92), rgba(10,8,18,0.8));
+  border-bottom: 1px solid rgba(139,105,20,0.5); padding: 8px 16px;
+  display: flex; gap: 16px; align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+.topbar-portrait {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffd700;
+  box-shadow: 0 0 10px rgba(255,215,0,0.4);
+}
+#ui-charname { color: #ffd700; font-weight: bold; font-size: 14px; text-shadow: 0 0 6px rgba(255,215,0,0.4); }
+#ui-level { color: #88ccff; font-size: 13px; }
+#ui-class { color: #9988aa; font-size: 12px; }
+#ui-map { color: #88ff88; font-size: 13px; }
+#ui-zen { color: #ffcc00; margin-left: auto; font-size: 13px; }
+
+
+/* ===== HP/MP/EXP BARS ===== */
+#ui-bars {
+  pointer-events: auto; position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px; align-items: center;
+}
+.bar-container { display: flex; align-items: center; gap: 6px; }
+.bar-label {
+  font-family: 'Press Start 2P', monospace; font-size: 8px; color: #aaa; min-width: 26px; text-align: right;
+}
+.bar-frame {
+  position: relative; width: 180px; height: 22px;
+  background: #0a0812; border: 2px solid #3a2a0a; border-radius: 3px; overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 0 4px rgba(139,105,20,0.3);
+}
+.bar-frame::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  border: 1px solid rgba(255,215,0,0.15); border-radius: 2px; z-index: 2; pointer-events: none;
+}
+.bar-fill { height: 100%; transition: width 0.3s; position: relative; }
+.hp-fill {
+  background: linear-gradient(180deg, #ff3333, #aa0000, #880000);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 8px rgba(255,0,0,0.4);
+}
+.hp-low { animation: hpPulse 0.8s ease-in-out infinite; }
+@keyframes hpPulse { 0%,100% { box-shadow: 0 0 8px rgba(255,0,0,0.4); } 50% { box-shadow: 0 0 20px rgba(255,0,0,0.8); } }
+.mp-fill {
+  background: linear-gradient(180deg, #4488ff, #1144cc, #0022aa);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 8px rgba(0,100,255,0.4);
+  animation: mpShimmer 3s linear infinite;
+}
+@keyframes mpShimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.exp-fill {
+  background: linear-gradient(180deg, #ffdd44, #cc9900, #886600);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 8px rgba(255,200,0,0.3);
+  animation: expSparkle 2s ease-in-out infinite;
+}
+@keyframes expSparkle { 0%,100% { opacity: 1; } 50% { opacity: 0.85; } }
+.bar-text {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-family: 'Press Start 2P', monospace; font-size: 8px; color: #fff;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000; z-index: 3;
+}
+
+/* ===== ACTION BUTTONS ===== */
+#ui-actions {
+  pointer-events: auto; position: absolute; bottom: 12px; right: 12px; display: flex; gap: 6px;
+}
+.action-btn {
+  width: 44px; height: 44px; background: rgba(10,8,20,0.92); border: 2px solid #5a4a1a;
+  border-radius: 6px; font-size: 18px; cursor: pointer; transition: 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+.action-btn:hover {
+  border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.4);
+  transform: translateY(-2px);
+}
+.action-btn::after {
+  content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: rgba(10,8,20,0.95); color: #ffd700; padding: 4px 8px; border-radius: 3px;
+  font-size: 11px; white-space: nowrap; pointer-events: none; opacity: 0; transition: 0.2s;
+  border: 1px solid #5a4a1a;
+}
+.action-btn:hover::after { opacity: 1; bottom: calc(100% + 4px); }
+
+
+/* ===== GAME LOG ===== */
+#ui-log {
+  pointer-events: auto; position: absolute; bottom: 44px; left: 12px; width: 330px; max-height: 160px;
+  overflow-y: auto; background: rgba(10,8,15,0.88); border: 1px solid rgba(139,105,20,0.3);
+  border-radius: 6px; padding: 8px 10px; font-size: 12px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+}
+#ui-log::-webkit-scrollbar { width: 6px; }
+#ui-log::-webkit-scrollbar-track { background: #0a0812; }
+#ui-log::-webkit-scrollbar-thumb { background: #3a2a0a; border-radius: 3px; }
+.log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; gap: 6px; }
+.log-time { color: #4a4a4a; font-family: 'Press Start 2P', monospace; font-size: 7px; min-width: 40px; padding-top: 2px; }
+
+/* ===== SIDE PANEL ===== */
+#panel-right {
+  pointer-events: auto; position: absolute; top: 50px; right: 12px; width: 340px;
+  max-height: calc(100vh - 110px); overflow-y: auto;
+  background: rgba(10,8,18,0.95); border: 2px solid rgba(139,105,20,0.5);
+  border-radius: 8px; padding: 18px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.3);
+}
+#panel-right::before {
+  content: ''; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px;
+  border: 1px solid rgba(255,215,0,0.08); border-radius: 4px; pointer-events: none;
+}
+#panel-right::-webkit-scrollbar { width: 6px; }
+#panel-right::-webkit-scrollbar-track { background: #0a0812; }
+#panel-right::-webkit-scrollbar-thumb { background: #3a2a0a; border-radius: 3px; }
+.panel-title {
+  color: #ffd700; font-family: 'MedievalSharp', serif; font-size: 18px; margin-bottom: 14px;
+  text-shadow: 0 0 8px rgba(255,215,0,0.3); border-bottom: 1px solid rgba(139,105,20,0.3);
+  padding-bottom: 8px;
+}
+.item-card {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 5px 0;
+  background: rgba(15,12,25,0.8); border: 1px solid #2a2040; border-radius: 5px;
+  font-size: 13px; transition: 0.2s;
+}
+.item-card:hover { border-color: #5a4a2a; background: rgba(20,16,30,0.9); }
+.item-card.equipped { border-color: #ffd700; box-shadow: 0 0 8px rgba(255,215,0,0.15); }
+.item-card.rarity-common { border-left: 3px solid #888; }
+.item-card.rarity-uncommon { border-left: 3px solid #44cc44; }
+.item-card.rarity-rare { border-left: 3px solid #4488ff; }
+.item-card.rarity-epic { border-left: 3px solid #aa44ff; }
+.item-btn {
+  padding: 4px 10px; font-size: 11px; background: #0f0d18; border: 1px solid #3a2a0a;
+  color: #ccc; border-radius: 3px; cursor: pointer; font-family: 'MedievalSharp', serif; transition: 0.2s;
+}
+.item-btn:hover { border-color: #ffd700; color: #ffd700; }
+.item-btn.sell { border-color: #5a2020; color: #ff8888; }
+.item-btn.sell:hover { border-color: #aa4444; }
+.item-btn.use { border-color: #205a20; color: #88ff88; }
+.stat-row {
+  display: flex; justify-content: space-between; padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+}
+.stat-label { color: #8b7355; }
+.stat-value { color: #e0d8c8; font-weight: bold; }
+.stat-add-btn {
+  background: linear-gradient(135deg, #8b6914, #ffd700); color: #1a0f00; border: none;
+  padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 6px;
+}
+.stat-add-btn:hover { box-shadow: 0 0 8px rgba(255,215,0,0.5); }
+</style>
 
 
 <script>
@@ -210,7 +448,6 @@ const Store = {
   set(key, val) { localStorage.setItem('mu_'+key, JSON.stringify(val)); },
   del(key) { localStorage.removeItem('mu_'+key); }
 };
-
 function getAccounts() { return Store.get('accounts') || []; }
 function saveAccounts(a) { Store.set('accounts', a); }
 function getChars() { return Store.get('characters') || []; }
@@ -225,7 +462,6 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
 function showAuthTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('auth-error').textContent = '';
@@ -239,7 +475,6 @@ function showAuthTab(tab) {
     document.getElementById('register-form').classList.remove('hidden');
   }
 }
-
 function doRegister(e) {
   e.preventDefault();
   const u = document.getElementById('reg-username').value.trim();
@@ -254,7 +489,6 @@ function doRegister(e) {
   Store.set('session', u);
   loadCharSelect();
 }
-
 function doLogin(e) {
   e.preventDefault();
   const u = document.getElementById('login-username').value.trim();
@@ -266,33 +500,36 @@ function doLogin(e) {
   Store.set('session', u);
   loadCharSelect();
 }
-
 function doLogout() { Store.del('session'); currentUser = null; showScreen('screen-auth'); }
 function showErr(msg) { document.getElementById('auth-error').textContent = msg; }
+</script>
 
+
+<script>
 // ===== CHARACTER SELECT =====
 function loadCharSelect() {
   showScreen('screen-charselect');
   const chars = getChars().filter(c => c.owner === currentUser);
   const el = document.getElementById('character-list');
   if (!chars.length) {
-    el.innerHTML = '<p style="color:#888;margin:20px;">No characters yet. Create one!</p>';
+    el.innerHTML = '<p style="color:#6b5b3a;margin:20px;font-size:14px;">No characters yet. Create one!</p>';
   } else {
-    el.innerHTML = chars.map(c => `
-      <div style="display:inline-block;background:#1a1a2e;border:1px solid #333;padding:16px;border-radius:8px;cursor:pointer;min-width:140px;margin:8px;transition:0.2s;" onclick="enterGame('${c.id}')" onmouseover="this.style.borderColor='#ffd700'" onmouseout="this.style.borderColor='#333'">
-        <div style="color:#ffd700;font-weight:bold;">${c.name}</div>
-        <div style="font-size:12px;color:#888;">${CLASS_DATA[c.cls].name}</div>
-        <div style="font-size:12px;color:#888;">Level ${c.level}</div>
+    el.innerHTML = chars.map(c => {
+      const cd = CLASS_DATA[c.cls];
+      return `<div class="char-card" onclick="enterGame('${c.id}')">
+        <div class="char-icon" style="background:${cd.color};color:${cd.color};"></div>
+        <div style="color:#ffd700;font-weight:bold;font-size:15px;">${c.name}</div>
+        <div style="font-size:12px;color:#8b7355;">${cd.name}</div>
+        <div style="font-size:12px;color:#6b5b3a;">Level ${c.level}</div>
         <div style="font-size:11px;color:#ff4444;cursor:pointer;margin-top:8px;" onclick="event.stopPropagation();deleteChar('${c.id}')">✕ Delete</div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
-  // Build class select
   document.getElementById('class-select').innerHTML = Object.entries(CLASS_DATA).map(([k,v]) => `
-    <div class="cls-opt" data-cls="${k}" onclick="selectClass('${k}')" style="flex:1;padding:12px 8px;background:#1a1a2e;border:2px solid #333;border-radius:8px;cursor:pointer;text-align:center;">
-      <div style="width:40px;height:40px;margin:0 auto 6px;border-radius:50%;background:${v.color};"></div>
+    <div class="cls-opt" data-cls="${k}" onclick="selectClass('${k}')">
+      <div style="width:44px;height:44px;margin:0 auto 8px;border-radius:50%;background:${v.color};box-shadow:0 0 12px ${v.color};"></div>
       <span style="color:#ffd700;font-size:13px;display:block;">${v.name}</span>
-      <small style="color:#888;font-size:11px;">${v.desc}</small>
+      <small style="color:#6b5b3a;font-size:11px;">${v.desc}</small>
     </div>
   `).join('');
   selectClass('dark_knight');
@@ -302,10 +539,9 @@ let selectedClass = 'dark_knight';
 function selectClass(cls) {
   selectedClass = cls;
   document.querySelectorAll('.cls-opt').forEach(el => {
-    el.style.borderColor = el.dataset.cls === cls ? '#ffd700' : '#333';
+    el.classList.toggle('selected', el.dataset.cls === cls);
   });
 }
-
 function showCreateModal() { document.getElementById('create-modal').classList.remove('hidden'); document.getElementById('create-error').textContent = ''; }
 function hideCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
 
@@ -320,13 +556,11 @@ function doCreateChar() {
   const ch = { id, owner: currentUser, name, cls: selectedClass, level: 1, exp: 0, hp: cd.baseHp, maxHp: cd.baseHp, mp: cd.baseMp, maxMp: cd.baseMp, str: cd.baseStr, agi: cd.baseAgi, vit: cd.baseVit, ene: cd.baseEne, statPts: 0, zen: 10000, mapId: 'lorencia', px: 130, py: 130 };
   chars.push(ch);
   saveChars(chars);
-  // Starting items
   const inv = cd.startItems.map((itemId,i) => ({ uid: id+'_'+i, itemId, equipped: i < 2 ? 1 : 0 }));
   saveInv(id, inv);
   hideCreateModal();
   loadCharSelect();
 }
-
 function deleteChar(id) {
   if (!confirm('Delete this character?')) return;
   saveChars(getChars().filter(c => c.id !== id));
@@ -337,8 +571,107 @@ function deleteChar(id) {
 
 
 <script>
+// ===== PARTICLE SYSTEM =====
+class Particles {
+  constructor(max = 200) { this.particles = []; this.max = max; }
+  emit(x, y, count, opts = {}) {
+    for (let i = 0; i < count && this.particles.length < this.max; i++) {
+      this.particles.push({
+        x, y, vx: (Math.random()-0.5) * (opts.speed||2), vy: (Math.random()-0.5) * (opts.speed||2) + (opts.gravity||0),
+        life: opts.life || 60, maxLife: opts.life || 60,
+        size: opts.size || 2+Math.random()*2,
+        color: opts.color || '#ffd700', type: opts.type || 'circle'
+      });
+    }
+  }
+  update() {
+    this.particles = this.particles.filter(p => {
+      p.x += p.vx; p.y += p.vy; p.life--;
+      if (p.type === 'snow') { p.vx = Math.sin(p.life*0.05)*0.3; p.vy += 0.01; }
+      if (p.type === 'ember') { p.vy -= 0.02; }
+      if (p.type === 'firefly') { p.vx = Math.sin(p.life*0.08)*0.5; p.vy = Math.cos(p.life*0.06)*0.3; }
+      return p.life > 0;
+    });
+  }
+  draw(ctx, cam) {
+    this.particles.forEach(p => {
+      const alpha = p.life / p.maxLife;
+      const sx = cam ? p.x - cam.x : p.x;
+      const sy = cam ? p.y - cam.y : p.y;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      if (p.type === 'snow') {
+        ctx.beginPath(); ctx.arc(sx, sy, p.size, 0, Math.PI*2); ctx.fill();
+      } else if (p.type === 'spark') {
+        ctx.fillRect(sx-1, sy-1, 3, 3);
+      } else {
+        ctx.beginPath(); ctx.arc(sx, sy, p.size, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+  }
+}
+
+// Login screen particles
+let authParticles = new Particles(150);
+let authCanvas, authCtx;
+function initAuthParticles() {
+  authCanvas = document.getElementById('auth-particles');
+  if (!authCanvas) return;
+  authCtx = authCanvas.getContext('2d');
+  authCanvas.width = window.innerWidth; authCanvas.height = window.innerHeight;
+  animateAuth();
+}
+function animateAuth() {
+  if (!document.getElementById('screen-auth').classList.contains('active')) return;
+  authCtx.fillStyle = 'rgba(5,5,8,0.15)';
+  authCtx.fillRect(0, 0, authCanvas.width, authCanvas.height);
+  if (Math.random() < 0.3) {
+    authParticles.emit(Math.random()*authCanvas.width, authCanvas.height+10, 1, {
+      speed: 0.8, life: 120+Math.random()*80, size: 1+Math.random()*2,
+      color: Math.random()>0.5 ? '#ffd700' : '#ff6600', type: 'ember', gravity: -0.5
+    });
+  }
+  if (Math.random() < 0.15) {
+    authParticles.emit(Math.random()*authCanvas.width, Math.random()*authCanvas.height, 1, {
+      speed: 0.1, life: 80+Math.random()*60, size: 0.5+Math.random(),
+      color: '#ffffff', type: 'circle'
+    });
+  }
+  authParticles.update();
+  authParticles.draw(authCtx);
+  requestAnimationFrame(animateAuth);
+}
+
+// Charsel particles
+let charselParticles = new Particles(80);
+let charselCanvas, charselCtx;
+function initCharselParticles() {
+  charselCanvas = document.getElementById('charsel-particles');
+  if (!charselCanvas) return;
+  charselCtx = charselCanvas.getContext('2d');
+  charselCanvas.width = window.innerWidth; charselCanvas.height = window.innerHeight;
+  animateCharsel();
+}
+function animateCharsel() {
+  if (!document.getElementById('screen-charselect').classList.contains('active')) return;
+  charselCtx.fillStyle = 'rgba(5,5,8,0.1)';
+  charselCtx.fillRect(0, 0, charselCanvas.width, charselCanvas.height);
+  if (Math.random() < 0.2) {
+    charselParticles.emit(Math.random()*charselCanvas.width, charselCanvas.height, 1, {
+      speed: 0.5, life: 150, size: 1+Math.random(), color: '#ffd700', type: 'ember', gravity: -0.4
+    });
+  }
+  charselParticles.update();
+  charselParticles.draw(charselCtx);
+  requestAnimationFrame(animateCharsel);
+}
+</script>
+
+
+<script>
 // ===== GAME ENGINE =====
-let G = { char: null, inv: [], map: null, mobs: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [] };
+let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[] };
 let canvas, ctx;
 
 function enterGame(charId) {
@@ -361,22 +694,20 @@ function enterGame(charId) {
   gameLog('Welcome to '+G.map.name+'!','system');
   requestAnimationFrame(gameLoop);
 }
-
 function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
 function loadMap(mapId) {
   G.map = MAPS[mapId];
   G.mobs = G.map.monsters.map((m,i) => ({ ...MONSTERS[m.id], x:m.x, y:m.y, spawnX:m.x, spawnY:m.y, curHp:MONSTERS[m.id].hp, alive:true, respawn:0, uid:mapId+'_'+i }));
-  G.target = null;
-  G.moveTo = null;
+  G.target = null; G.moveTo = null;
 }
 
 function buildActions() {
   document.getElementById('ui-actions').innerHTML = `
-    <button onclick="togglePanel('inv')" title="Inventory" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🎒</button>
-    <button onclick="togglePanel('stats')" title="Stats" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">📊</button>
-    <button onclick="doRest()" title="Rest" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">💤</button>
-    <button onclick="saveAndQuit()" title="Save & Quit" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🚪</button>
+    <button class="action-btn" onclick="togglePanel('inv')" data-tip="Inventory" style="position:relative;">🎒</button>
+    <button class="action-btn" onclick="togglePanel('stats')" data-tip="Stats" style="position:relative;">📊</button>
+    <button class="action-btn" onclick="doRest()" data-tip="Rest" style="position:relative;">💤</button>
+    <button class="action-btn" onclick="saveAndQuit()" data-tip="Save & Quit" style="position:relative;">🚪</button>
   `;
 }
 
@@ -392,16 +723,13 @@ function gameLoop() {
 
 function update(dt) {
   const c = G.char;
-  // Movement
   if (G.moveTo) {
     const dx = G.moveTo.x - c.px, dy = G.moveTo.y - c.py;
     const dist = Math.sqrt(dx*dx+dy*dy);
     if (dist < 3) { G.moveTo = null; }
     else { const spd = 2.5; c.px += (dx/dist)*spd; c.py += (dy/dist)*spd; }
   }
-  // Attack cooldown
   if (G.atkCd > 0) G.atkCd -= dt;
-  // Auto-attack
   if (G.target && G.atkCd <= 0) {
     const m = G.mobs.find(x => x.uid === G.target);
     if (m && m.alive) {
@@ -409,34 +737,50 @@ function update(dt) {
       if (Math.sqrt(dx*dx+dy*dy) < 30) { G.moveTo = null; doAttack(m); }
     } else { G.target = null; }
   }
-  // Monster respawn
   G.mobs.forEach(m => { if (!m.alive) { m.respawn -= dt; if (m.respawn <= 0) { m.alive = true; m.curHp = m.hp; m.x = m.spawnX; m.y = m.spawnY; } } });
-  // Portal check
   G.map.portals.forEach(p => {
     const dx = p.x - c.px, dy = p.y - c.py;
     if (Math.sqrt(dx*dx+dy*dy) < 10) { c.mapId = p.to; c.px = p.tx; c.py = p.ty; loadMap(p.to); gameLog('Entered '+G.map.name+'!','system'); updateUI(); saveGame(); }
   });
+  // Ambient particles
+  G.ambientTimer += dt;
+  if (G.ambientTimer > 200) {
+    G.ambientTimer = 0;
+    const cam = getCamera();
+    if (G.map.id === 'devias') {
+      G.particles.emit(cam.x+Math.random()*canvas.width, cam.y-10, 2, { speed:0.3, life:180, size:2, color:'#ffffff', type:'snow', gravity:0.3 });
+    } else if (G.map.id === 'noria') {
+      G.particles.emit(cam.x+Math.random()*canvas.width, cam.y+Math.random()*canvas.height, 1, { speed:0.2, life:120, size:1.5, color:'#88ff44', type:'firefly' });
+    }
+  }
+  G.particles.update();
+  G.slashEffects = G.slashEffects.filter(s => { s.life--; return s.life > 0; });
+  G.deathEffects = G.deathEffects.filter(d => { d.life--; return d.life > 0; });
 }
+</script>
 
+
+<script>
+// ===== COMBAT =====
 function doAttack(m) {
   G.atkCd = 1000;
   const c = G.char;
   const cd = CLASS_DATA[c.cls];
   let baseDmg = c.str * (cd.dmgPerStr||1) + c.agi * (cd.dmgPerAgi||0.3);
-  // Weapon bonus
   G.inv.filter(i=>i.equipped).forEach(i => { const it = ITEMS[i.itemId]; if (it&&it.attack) baseDmg += it.attack; });
   const pDmg = Math.max(1, Math.floor(baseDmg * (0.8+Math.random()*0.4)));
-  // Monster damage
   let armor = 0;
   G.inv.filter(i=>i.equipped).forEach(i => { const it = ITEMS[i.itemId]; if (it&&it.defense) armor += it.defense; });
   const mDmg = Math.max(1, Math.floor(m.attack*(0.8+Math.random()*0.4) - armor*0.5 - c.agi*0.2));
-  
   m.curHp -= pDmg;
   c.hp = Math.max(0, c.hp - mDmg);
   addDmg(m.x, m.y-10, pDmg, '#ffff00');
   if (mDmg > 0) addDmg(c.px, c.py-10, mDmg, '#ff4444');
+  // Slash effect
+  G.slashEffects.push({ x: m.x*4, y: m.y*4, life: 15, maxLife: 15, angle: Math.atan2(m.y-c.py, m.x-c.px) });
+  // Hit sparks
+  G.particles.emit(m.x*4, m.y*4, 5, { speed:3, life:20, size:2, color:'#ffff88', type:'spark' });
   gameLog(`Hit ${m.name} for ${pDmg}! Took ${mDmg} dmg.`,'combat');
-  
   if (m.curHp <= 0) { killMonster(m); }
   if (c.hp <= 0) { playerDied(); }
   updateUI();
@@ -445,13 +789,14 @@ function doAttack(m) {
 function killMonster(m) {
   m.alive = false; m.respawn = 15000;
   G.target = null;
+  // Death explosion particles
+  G.deathEffects.push({ x: m.x*4, y: m.y*4, life: 30 });
+  G.particles.emit(m.x*4, m.y*4, 12, { speed:4, life:30, size:3, color:'#ff8844', type:'spark' });
   const c = G.char;
   const expG = m.exp, zenG = m.zen + Math.floor(Math.random()*m.zen*0.5);
   c.exp += expG; c.zen += zenG;
   gameLog(`Killed ${m.name}! +${expG} EXP +${zenG} Zen`,'system');
-  // Drops
   (m.drops||[]).forEach(d => { if (Math.random() < d.chance) { const uid = Date.now().toString(36)+Math.random().toString(36).slice(2,6); G.inv.push({uid,itemId:d.id,equipped:0}); gameLog(`Loot: ${ITEMS[d.id].name}`,'loot'); }});
-  // Level up
   const needed = expForLevel(c.level);
   if (c.exp >= needed) {
     c.exp -= needed; c.level++; c.statPts += 5;
@@ -459,6 +804,8 @@ function killMonster(m) {
     c.maxHp += cd.hpPerLevel; c.maxMp += cd.mpPerLevel;
     c.hp = c.maxHp; c.mp = c.maxMp;
     gameLog(`LEVEL UP! Now level ${c.level}! +5 stat points`,'system');
+    // Level up golden shower
+    G.particles.emit(c.px*4, c.py*4-20, 30, { speed:3, life:60, size:2.5, color:'#ffd700', type:'ember', gravity:-1 });
   }
   saveGame();
 }
@@ -470,7 +817,6 @@ function playerDied() {
   gameLog('You died! Respawning in town...','combat');
   saveGame();
 }
-
 function expForLevel(lv) { return Math.floor(100 * Math.pow(1.5, lv-1)); }
 
 function handleClick(e) {
@@ -478,12 +824,10 @@ function handleClick(e) {
   const cam = getCamera();
   const wx = (e.clientX - rect.left + cam.x) / 4;
   const wy = (e.clientY - rect.top + cam.y) / 4;
-  // Check monster click
   for (const m of G.mobs) {
     if (!m.alive) continue;
     if (Math.sqrt((m.x-wx)**2+(m.y-wy)**2) < 12) { G.target = m.uid; G.moveTo = {x:m.x,y:m.y}; gameLog(`Targeting ${m.name}`,'info'); return; }
   }
-  // Check NPC click
   for (const n of G.map.npcs) {
     if (Math.sqrt((n.x-wx)**2+(n.y-wy)**2) < 12) {
       if (Math.sqrt((n.x-G.char.px)**2+(n.y-G.char.py)**2) < 40) { openShop(n.id, n.name); }
@@ -498,15 +842,13 @@ function handleClick(e) {
 
 <script>
 // ===== RENDERER =====
-function getCamera() {
-  return { x: G.char.px*4 - canvas.width/2, y: G.char.py*4 - canvas.height/2 };
-}
+function getCamera() { return { x: G.char.px*4 - canvas.width/2, y: G.char.py*4 - canvas.height/2 }; }
 
 function render() {
   const cam = getCamera();
   const c = G.char, map = G.map;
   ctx.fillStyle = map.bg; ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Ground tiles
+  // Ground tiles with environment decoration
   const ts = 32;
   const sc = Math.floor(cam.x/ts), sr = Math.floor(cam.y/ts);
   const ec = sc+Math.ceil(canvas.width/ts)+1, er = sr+Math.ceil(canvas.height/ts)+1;
@@ -515,42 +857,422 @@ function render() {
     const x=cl*ts-cam.x, y=r*ts-cam.y;
     const v = G.tileVar[(r*128+cl)%G.tileVar.length];
     ctx.fillStyle = adjColor(map.bg, v); ctx.fillRect(x,y,ts,ts);
-    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.strokeRect(x,y,ts,ts);
+    ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.strokeRect(x,y,ts,ts);
+    drawEnvironment(x, y, cl, r, map.id);
   }
   // Safe zone
-  if (map.safe) { const s=map.safe; ctx.fillStyle='rgba(100,200,100,0.06)'; ctx.fillRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); ctx.strokeStyle='rgba(100,200,100,0.25)'; ctx.strokeRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); }
-  // Portals
+  if (map.safe) { const s=map.safe; ctx.fillStyle='rgba(100,200,100,0.05)'; ctx.fillRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); ctx.strokeStyle='rgba(139,105,20,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.strokeRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); ctx.setLineDash([]); }
+  // Portals (animated vortex)
   G.portalAnim += 0.05;
-  map.portals.forEach(p => { const sx=p.x*4-cam.x, sy=p.y*4-cam.y, gl=Math.sin(G.portalAnim)*0.3+0.7; ctx.beginPath(); ctx.arc(sx,sy,20,0,Math.PI*2); ctx.fillStyle=`rgba(100,150,255,${gl*0.4})`; ctx.fill(); ctx.strokeStyle=`rgba(150,200,255,${gl})`; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(p.label,sx,sy+30); });
+  map.portals.forEach(p => drawPortal(p, cam));
   // NPCs
-  map.npcs.forEach(n => { const sx=n.x*4-cam.x, sy=n.y*4-cam.y; ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2); ctx.fillStyle='#44aaff'; ctx.fill(); ctx.strokeStyle='#88ccff'; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#88ccff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(n.name,sx,sy-20); ctx.fillStyle='#ffff00'; ctx.font='bold 14px sans-serif'; ctx.fillText('!',sx,sy+5); });
+  map.npcs.forEach(n => drawNPC(n, cam));
   // Monsters
-  G.mobs.forEach(m => { if (!m.alive) return; const sx=m.x*4-cam.x, sy=m.y*4-cam.y; if(sx<-40||sx>canvas.width+40||sy<-40||sy>canvas.height+40) return; ctx.beginPath(); ctx.arc(sx,sy,12,0,Math.PI*2); ctx.fillStyle=monColor(m.level); ctx.fill(); if(G.target===m.uid){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.stroke();} ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(m.name,sx,sy-18); const hp=m.curHp/m.hp; ctx.fillStyle='#333';ctx.fillRect(sx-15,sy-14,30,4); ctx.fillStyle=hp>0.5?'#0c0':hp>0.25?'#cc0':'#c00';ctx.fillRect(sx-15,sy-14,30*hp,4); });
+  G.mobs.forEach(m => { if (m.alive) drawMonster(m, cam); });
+  // Death effects
+  G.deathEffects.forEach(d => {
+    const sx = d.x - cam.x, sy = d.y - cam.y;
+    const alpha = d.life / 30;
+    ctx.globalAlpha = alpha; ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
+    const rad = (30 - d.life) * 2;
+    ctx.beginPath(); ctx.arc(sx, sy, rad, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
   // Player
-  const px=c.px*4-cam.x, py=c.py*4-cam.y;
-  ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.fillStyle=CLASS_DATA[c.cls].color; ctx.fill(); ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ffd700'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillText(c.name,px,py-20);
-  ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.fillText(c.level,px,py+4);
+  drawPlayer(c, cam);
+  // Slash effects
+  G.slashEffects.forEach(s => {
+    const sx = s.x - cam.x, sy = s.y - cam.y;
+    const alpha = s.life / s.maxLife;
+    ctx.globalAlpha = alpha; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 20, s.angle - 0.8, s.angle + 0.8);
+    ctx.stroke(); ctx.globalAlpha = 1;
+  });
+  // Particles
+  G.particles.draw(ctx, cam);
   // Move indicator
-  if (G.moveTo) { const tx=G.moveTo.x*4-cam.x, ty=G.moveTo.y*4-cam.y; ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke(); }
+  if (G.moveTo) { const tx=G.moveTo.x*4-cam.x, ty=G.moveTo.y*4-cam.y; ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=1;ctx.stroke(); }
   // Damage numbers
-  G.dmgNums = G.dmgNums.filter(d => { d.life--; d.dy-=0.5; const sx=d.x*4-cam.x, sy=d.y*4-cam.y+d.dy; ctx.globalAlpha=d.life/60; ctx.fillStyle=d.color; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.fillText(d.val,sx,sy); ctx.globalAlpha=1; return d.life>0; });
+  G.dmgNums = G.dmgNums.filter(d => { d.life--; d.dy-=0.5; const sx=d.x*4-cam.x, sy=d.y*4-cam.y+d.dy; ctx.globalAlpha=d.life/60; ctx.fillStyle=d.color; ctx.font='bold 14px MedievalSharp'; ctx.textAlign='center'; ctx.fillText(d.val,sx,sy); ctx.globalAlpha=1; return d.life>0; });
 }
 
+function drawEnvironment(x, y, col, row, mapId) {
+  const seed = (col*7919 + row*6271) % 100;
+  if (mapId === 'lorencia') {
+    if (seed < 8) { // grass tufts
+      ctx.strokeStyle = 'rgba(100,180,60,0.4)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x+12,y+28); ctx.lineTo(x+14,y+20); ctx.moveTo(x+16,y+28); ctx.lineTo(x+17,y+18); ctx.moveTo(x+20,y+28); ctx.lineTo(x+19,y+21); ctx.stroke();
+    } else if (seed < 12) { // small rocks
+      ctx.fillStyle = 'rgba(80,80,60,0.4)'; ctx.beginPath(); ctx.ellipse(x+20,y+24,4,3,0,0,Math.PI*2); ctx.fill();
+    }
+  } else if (mapId === 'devias') {
+    if (seed < 10) { // snow patches
+      ctx.fillStyle = 'rgba(200,220,255,0.12)'; ctx.beginPath(); ctx.ellipse(x+16,y+16,10,8,seed*0.5,0,Math.PI*2); ctx.fill();
+    } else if (seed < 14) { // ice crystals
+      ctx.strokeStyle = 'rgba(150,200,255,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x+16,y+10); ctx.lineTo(x+16,y+22); ctx.moveTo(x+10,y+16); ctx.lineTo(x+22,y+16); ctx.stroke();
+    }
+  } else if (mapId === 'noria') {
+    if (seed < 6) { // flower patches
+      ctx.fillStyle = 'rgba(255,150,200,0.35)'; ctx.beginPath(); ctx.arc(x+14,y+20,2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,100,0.35)'; ctx.beginPath(); ctx.arc(x+20,y+24,2,0,Math.PI*2); ctx.fill();
+    } else if (seed < 10) { // vine decorations
+      ctx.strokeStyle = 'rgba(50,150,50,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x+8,y+10); ctx.quadraticCurveTo(x+16,y+20,x+24,y+12); ctx.stroke();
+    }
+  }
+}
+</script>
+
+
+<script>
+// ===== DRAW FUNCTIONS =====
+function drawPortal(p, cam) {
+  const sx = p.x*4-cam.x, sy = p.y*4-cam.y;
+  const t = G.portalAnim;
+  // Outer glow
+  ctx.globalAlpha = 0.2; ctx.fillStyle = '#6688ff';
+  ctx.beginPath(); ctx.arc(sx, sy, 28, 0, Math.PI*2); ctx.fill();
+  // Rings
+  for (let i = 0; i < 3; i++) {
+    const rad = 12 + i*6;
+    const alpha = 0.4 + Math.sin(t+i)*0.3;
+    ctx.globalAlpha = alpha; ctx.strokeStyle = `hsl(${220+i*20},80%,${60+i*10}%)`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(sx, sy, rad, t+i*2, t+i*2+4); ctx.stroke();
+  }
+  // Center
+  ctx.globalAlpha = 0.6+Math.sin(t*2)*0.2; ctx.fillStyle = '#aaccff';
+  ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Portal particles
+  if (Math.random() < 0.15) {
+    const angle = Math.random()*Math.PI*2;
+    G.particles.emit(sx+cam.x+Math.cos(angle)*18, sy+cam.y+Math.sin(angle)*18, 1, { speed:0.5, life:40, size:1.5, color:'#88aaff', type:'circle' });
+  }
+  // Label
+  ctx.fillStyle = '#cceeff'; ctx.font = '12px MedievalSharp'; ctx.textAlign = 'center';
+  ctx.fillText(p.label, sx, sy+36);
+}
+
+function drawNPC(n, cam) {
+  const sx = n.x*4-cam.x, sy = n.y*4-cam.y;
+  // Robed body
+  ctx.fillStyle = '#2244aa';
+  ctx.beginPath(); ctx.moveTo(sx-8,sy+12); ctx.lineTo(sx+8,sy+12); ctx.lineTo(sx+5,sy-4); ctx.lineTo(sx-5,sy-4); ctx.closePath(); ctx.fill();
+  // Head
+  ctx.fillStyle = '#ddbba0';
+  ctx.beginPath(); ctx.arc(sx, sy-8, 6, 0, Math.PI*2); ctx.fill();
+  // Hood
+  ctx.fillStyle = '#1a3388';
+  ctx.beginPath(); ctx.arc(sx, sy-8, 7, Math.PI, Math.PI*2); ctx.fill();
+  // Quest marker (golden circle)
+  const bob = Math.sin(G.portalAnim*2)*2;
+  ctx.fillStyle = '#ffd700'; ctx.globalAlpha = 0.8+Math.sin(G.portalAnim*3)*0.2;
+  ctx.beginPath(); ctx.arc(sx, sy-22+bob, 5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('!', sx, sy-19+bob);
+  ctx.globalAlpha = 1;
+  // Name
+  ctx.fillStyle = '#88ccff'; ctx.font = '11px MedievalSharp'; ctx.textAlign = 'center';
+  ctx.fillText(n.name, sx, sy+24);
+}
+
+function drawPlayer(c, cam) {
+  const px = c.px*4-cam.x, py = c.py*4-cam.y;
+  const color = CLASS_DATA[c.cls].color;
+  // Shadow
+  ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(px, py+14, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Legs
+  ctx.fillStyle = darken(color, 0.5);
+  ctx.fillRect(px-5, py+4, 4, 10);
+  ctx.fillRect(px+1, py+4, 4, 10);
+  // Torso
+  ctx.fillStyle = color;
+  ctx.fillRect(px-6, py-6, 12, 12);
+  // Arms
+  ctx.fillRect(px-9, py-4, 3, 9);
+  ctx.fillRect(px+6, py-4, 3, 9);
+  // Head
+  ctx.fillStyle = '#ddbba0';
+  ctx.beginPath(); ctx.arc(px, py-10, 5, 0, Math.PI*2); ctx.fill();
+  // Helmet hint
+  ctx.fillStyle = darken(color, 0.3);
+  ctx.beginPath(); ctx.arc(px, py-10, 5, Math.PI, Math.PI*2); ctx.fill();
+  // Class glow
+  ctx.globalAlpha = 0.25; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(px, py, 18, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Name
+  ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px MedievalSharp'; ctx.textAlign = 'center';
+  ctx.fillText(c.name, px, py-20);
+  // Level badge
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(px+12,py-14,7,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px sans-serif'; ctx.fillText(c.level, px+12, py-11);
+}
+
+function drawMonster(m, cam) {
+  const sx = m.x*4-cam.x, sy = m.y*4-cam.y;
+  if (sx<-50||sx>canvas.width+50||sy<-50||sy>canvas.height+50) return;
+  const mId = m.id;
+  // Shadow
+  ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(sx, sy+12, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Draw unique shape based on monster type
+  if (mId === 'spider') drawSpider(sx, sy);
+  else if (mId === 'budge_dragon') drawBudgeDragon(sx, sy);
+  else if (mId === 'bull_fighter') drawBullFighter(sx, sy);
+  else if (mId === 'hound') drawHound(sx, sy);
+  else if (mId === 'dark_knight_mob') drawDarkKnight(sx, sy);
+  else if (mId === 'ice_monster') drawIceMonster(sx, sy);
+  else if (mId === 'yeti') drawYeti(sx, sy);
+  else if (mId === 'goblin') drawGoblin(sx, sy);
+  else if (mId === 'forest_monster') drawForestMonster(sx, sy);
+  // Target indicator
+  if (G.target === m.uid) {
+    ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2; ctx.globalAlpha = 0.6+Math.sin(G.portalAnim*4)*0.3;
+    ctx.beginPath(); ctx.arc(sx, sy, 18, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // Name + HP bar
+  ctx.fillStyle = '#fff'; ctx.font = '10px MedievalSharp'; ctx.textAlign = 'center';
+  ctx.fillText(m.name, sx, sy-20);
+  const hp = m.curHp/m.hp;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(sx-16, sy-17, 32, 4);
+  ctx.fillStyle = hp > 0.5 ? '#44cc44' : hp > 0.25 ? '#cccc44' : '#cc4444';
+  ctx.fillRect(sx-16, sy-17, 32*hp, 4);
+}
+</script>
+
+
+<script>
+// ===== MONSTER DRAWING FUNCTIONS =====
+function drawSpider(x, y) {
+  ctx.fillStyle = '#4a3020'; // body
+  ctx.beginPath(); ctx.ellipse(x, y, 6, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a2010';
+  ctx.beginPath(); ctx.arc(x+5, y-2, 3, 0, Math.PI*2); ctx.fill(); // head
+  ctx.strokeStyle = '#5a4030'; ctx.lineWidth = 1.5;
+  for (let i = 0; i < 4; i++) { // 8 legs (4 per side)
+    const a = (i-1.5)*0.4; 
+    ctx.beginPath(); ctx.moveTo(x-2, y); ctx.lineTo(x-10-i*2, y-6+i*3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+2, y); ctx.lineTo(x+10+i*2, y-6+i*3); ctx.stroke();
+  }
+  // Eyes
+  ctx.fillStyle = '#ff0000';
+  ctx.beginPath(); ctx.arc(x+5,y-3,1,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+7,y-2,1,0,Math.PI*2); ctx.fill();
+}
+
+function drawBudgeDragon(x, y) {
+  ctx.fillStyle = '#66aa44'; // body
+  ctx.beginPath(); ctx.ellipse(x, y+2, 7, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Head
+  ctx.fillStyle = '#77bb55';
+  ctx.beginPath(); ctx.ellipse(x+8, y-3, 4, 3, -0.3, 0, Math.PI*2); ctx.fill();
+  // Wings
+  ctx.fillStyle = 'rgba(100,180,80,0.6)';
+  ctx.beginPath(); ctx.moveTo(x-2,y-2); ctx.lineTo(x-10,y-12); ctx.lineTo(x+2,y-4); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+2,y-2); ctx.lineTo(x+6,y-14); ctx.lineTo(x+8,y-4); ctx.closePath(); ctx.fill();
+  // Tail
+  ctx.strokeStyle = '#66aa44'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x-7,y+2); ctx.quadraticCurveTo(x-14,y+6,x-12,y-2); ctx.stroke();
+  // Eye
+  ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(x+9,y-4,1.5,0,Math.PI*2); ctx.fill();
+}
+
+function drawBullFighter(x, y) {
+  // Rectangular body
+  ctx.fillStyle = '#8b4513';
+  ctx.fillRect(x-8, y-5, 16, 14);
+  // Head
+  ctx.fillStyle = '#6b3010';
+  ctx.beginPath(); ctx.arc(x, y-8, 6, 0, Math.PI*2); ctx.fill();
+  // Horns
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x-5,y-11); ctx.lineTo(x-9,y-16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+5,y-11); ctx.lineTo(x+9,y-16); ctx.stroke();
+  // Legs
+  ctx.fillStyle = '#5a2808';
+  ctx.fillRect(x-7, y+9, 4, 6); ctx.fillRect(x+3, y+9, 4, 6);
+  // Eyes
+  ctx.fillStyle = '#ff3300';
+  ctx.beginPath(); ctx.arc(x-2,y-8,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+2,y-8,1.5,0,Math.PI*2); ctx.fill();
+}
+
+function drawHound(x, y) {
+  // Body (four-legged)
+  ctx.fillStyle = '#555566';
+  ctx.beginPath(); ctx.ellipse(x, y+2, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Head
+  ctx.fillStyle = '#666677';
+  ctx.beginPath(); ctx.ellipse(x+9, y-2, 5, 4, -0.2, 0, Math.PI*2); ctx.fill();
+  // Snout
+  ctx.fillStyle = '#444455';
+  ctx.beginPath(); ctx.ellipse(x+13, y-1, 3, 2, 0, 0, Math.PI*2); ctx.fill();
+  // Legs
+  ctx.fillStyle = '#444455';
+  ctx.fillRect(x-7,y+5,3,7); ctx.fillRect(x-2,y+5,3,7);
+  ctx.fillRect(x+4,y+5,3,7); ctx.fillRect(x+8,y+4,3,7);
+  // Ears
+  ctx.beginPath(); ctx.moveTo(x+7,y-5); ctx.lineTo(x+5,y-11); ctx.lineTo(x+9,y-6); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+11,y-5); ctx.lineTo(x+12,y-11); ctx.lineTo(x+13,y-5); ctx.fill();
+  // Eye
+  ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(x+10,y-3,1.5,0,Math.PI*2); ctx.fill();
+}
+
+function drawDarkKnight(x, y) {
+  // Humanoid with sword
+  ctx.fillStyle = '#222233';
+  ctx.fillRect(x-5, y-5, 10, 12); // torso
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(x-4, y+7, 3, 8); ctx.fillRect(x+1, y+7, 3, 8); // legs
+  // Head with helm
+  ctx.fillStyle = '#333344';
+  ctx.beginPath(); ctx.arc(x, y-9, 5, 0, Math.PI*2); ctx.fill();
+  // Helm visor
+  ctx.fillStyle = '#111'; ctx.fillRect(x-3, y-10, 6, 3);
+  // Eye glow
+  ctx.fillStyle = '#ff0000'; ctx.fillRect(x-2, y-10, 2, 1); ctx.fillRect(x+1, y-10, 2, 1);
+  // Sword
+  ctx.strokeStyle = '#ccccdd'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x+7, y-2); ctx.lineTo(x+14, y-14); ctx.stroke();
+  ctx.strokeStyle = '#8888aa'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x+5, y-1); ctx.lineTo(x+9, y-1); ctx.stroke(); // crossguard
+  // Cape
+  ctx.fillStyle = 'rgba(80,20,20,0.6)';
+  ctx.beginPath(); ctx.moveTo(x-5,y-3); ctx.lineTo(x-8,y+10); ctx.lineTo(x-3,y+8); ctx.closePath(); ctx.fill();
+}
+
+function drawIceMonster(x, y) {
+  // Crystal/angular shape
+  ctx.fillStyle = '#88bbee';
+  ctx.beginPath();
+  ctx.moveTo(x, y-14); ctx.lineTo(x+10, y-4); ctx.lineTo(x+8, y+8);
+  ctx.lineTo(x-8, y+8); ctx.lineTo(x-10, y-4); ctx.closePath();
+  ctx.fill();
+  // Inner crystal
+  ctx.fillStyle = '#aaddff';
+  ctx.beginPath();
+  ctx.moveTo(x, y-10); ctx.lineTo(x+5, y-2); ctx.lineTo(x+4, y+4);
+  ctx.lineTo(x-4, y+4); ctx.lineTo(x-5, y-2); ctx.closePath();
+  ctx.fill();
+  // Crystal spikes
+  ctx.strokeStyle = '#cceeFF'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x-4,y-8); ctx.lineTo(x-8,y-16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+4,y-8); ctx.lineTo(x+9,y-15); ctx.stroke();
+  // Glow
+  ctx.globalAlpha = 0.2; ctx.fillStyle = '#88ddff';
+  ctx.beginPath(); ctx.arc(x,y,16,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // Eyes
+  ctx.fillStyle = '#0044ff'; ctx.beginPath(); ctx.arc(x-3,y-4,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+3,y-4,2,0,Math.PI*2); ctx.fill();
+}
+
+function drawYeti(x, y) {
+  // Large fluffy round shape
+  ctx.fillStyle = '#ddeeff';
+  ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI*2); ctx.fill();
+  // Fur texture
+  ctx.fillStyle = '#ccdde8';
+  ctx.beginPath(); ctx.arc(x-4, y-4, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-2, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y+5, 5, 0, Math.PI*2); ctx.fill();
+  // Face
+  ctx.fillStyle = '#99aabb';
+  ctx.beginPath(); ctx.ellipse(x, y-2, 6, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath(); ctx.arc(x-3, y-3, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+3, y-3, 2, 0, Math.PI*2); ctx.fill();
+  // Mouth
+  ctx.strokeStyle = '#334'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y+2, 3, 0, Math.PI); ctx.stroke();
+  // Arms
+  ctx.fillStyle = '#ddeeff';
+  ctx.beginPath(); ctx.ellipse(x-14, y+2, 5, 8, 0.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+14, y+2, 5, 8, -0.2, 0, Math.PI*2); ctx.fill();
+}
+
+function drawGoblin(x, y) {
+  // Small hunched humanoid
+  ctx.fillStyle = '#44882a';
+  ctx.beginPath(); ctx.ellipse(x, y+2, 6, 8, 0.2, 0, Math.PI*2); ctx.fill(); // body
+  // Head (big for goblin)
+  ctx.fillStyle = '#55993a';
+  ctx.beginPath(); ctx.arc(x+2, y-9, 6, 0, Math.PI*2); ctx.fill();
+  // Ears (pointy)
+  ctx.beginPath(); ctx.moveTo(x-2,y-12); ctx.lineTo(x-8,y-16); ctx.lineTo(x-1,y-9); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+6,y-12); ctx.lineTo(x+12,y-16); ctx.lineTo(x+5,y-9); ctx.fill();
+  // Eyes (yellow, beady)
+  ctx.fillStyle = '#ffcc00';
+  ctx.beginPath(); ctx.arc(x,y-10,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+4,y-10,2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x,y-10,1,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+4,y-10,1,0,Math.PI*2); ctx.fill();
+  // Legs
+  ctx.fillStyle = '#338820';
+  ctx.fillRect(x-4, y+8, 3, 6); ctx.fillRect(x+1, y+8, 3, 6);
+}
+
+function drawForestMonster(x, y) {
+  // Tree-like shape with eyes
+  ctx.fillStyle = '#3a5520';
+  ctx.beginPath(); ctx.moveTo(x-8,y+12); ctx.lineTo(x-10,y-4); ctx.lineTo(x-6,y-10);
+  ctx.lineTo(x,y-16); ctx.lineTo(x+6,y-10); ctx.lineTo(x+10,y-4);
+  ctx.lineTo(x+8,y+12); ctx.closePath(); ctx.fill();
+  // Trunk base
+  ctx.fillStyle = '#4a3018';
+  ctx.fillRect(x-4, y+6, 8, 8);
+  // Branch arms
+  ctx.strokeStyle = '#4a3018'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x-6,y-2); ctx.lineTo(x-14,y-8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+6,y-2); ctx.lineTo(x+14,y-8); ctx.stroke();
+  // Leaves (canopy)
+  ctx.fillStyle = '#2a6618';
+  ctx.beginPath(); ctx.arc(x,y-10,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a5510';
+  ctx.beginPath(); ctx.arc(x-4,y-6,5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+4,y-6,5,0,Math.PI*2); ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#ffcc00';
+  ctx.beginPath(); ctx.arc(x-3,y-4,2.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+3,y-4,2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x-3,y-4,1,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+3,y-4,1,0,Math.PI*2); ctx.fill();
+}
+</script>
+
+
+<script>
+// ===== UTILITY FUNCTIONS =====
 function adjColor(hex, amt) { const n=parseInt(hex.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.max(0,Math.min(255,Math.floor(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.floor(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.floor(b*(1+amt)))); return `rgb(${r},${g},${b})`; }
-function monColor(lv) { if(lv<=3) return '#88cc44'; if(lv<=8) return '#cc8844'; if(lv<=15) return '#cc4444'; if(lv<=22) return '#8844cc'; return '#cc44cc'; }
+function darken(hex, amt) { const n=parseInt(hex.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.floor(r*amt); g=Math.floor(g*amt); b=Math.floor(b*amt); return `rgb(${r},${g},${b})`; }
 function addDmg(x,y,val,color) { G.dmgNums.push({x,y,val,color,life:60,dy:0}); }
 
-// ===== UI =====
+// ===== UI FUNCTIONS =====
 function updateUI() {
   const c = G.char, needed = expForLevel(c.level);
   document.getElementById('ui-charname').textContent = c.name;
   document.getElementById('ui-level').textContent = 'Lv.'+c.level;
   document.getElementById('ui-class').textContent = CLASS_DATA[c.cls].name;
-  document.getElementById('ui-map').textContent = G.map.name;
+  document.getElementById('ui-map').textContent = '⚔ '+G.map.name;
   document.getElementById('ui-zen').textContent = '💰 '+c.zen.toLocaleString()+' Zen';
-  document.getElementById('hp-bar').style.width = (c.hp/c.maxHp*100)+'%';
+  // Portrait color
+  document.getElementById('topbar-portrait').style.background = CLASS_DATA[c.cls].color;
+  // Bars
+  const hpPct = c.hp/c.maxHp*100;
+  document.getElementById('hp-bar').style.width = hpPct+'%';
   document.getElementById('hp-text').textContent = c.hp+'/'+c.maxHp;
+  document.getElementById('hp-bar').classList.toggle('hp-low', hpPct < 30);
   document.getElementById('mp-bar').style.width = (c.mp/c.maxMp*100)+'%';
   document.getElementById('mp-text').textContent = c.mp+'/'+c.maxMp;
   document.getElementById('exp-bar').style.width = (c.exp/needed*100)+'%';
@@ -561,10 +1283,12 @@ function gameLog(msg, type) {
   const el = document.getElementById('log-messages');
   const colors = {combat:'#ff8888',system:'#88ff88',loot:'#ffcc44',info:'#88ccff'};
   const d = document.createElement('div');
-  d.style.cssText = `padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05);color:${colors[type]||'#ccc'}`;
-  d.textContent = msg;
+  d.className = 'log-entry';
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  d.innerHTML = `<span class="log-time">${time}</span><span style="color:${colors[type]||'#ccc'}">${msg}</span>`;
   el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+  el.parentElement.scrollTop = el.parentElement.scrollHeight;
   while (el.children.length > 50) el.removeChild(el.firstChild);
 }
 
@@ -583,7 +1307,6 @@ function saveGame() {
   saveChars(chars);
   saveInv(G.char.id, G.inv);
 }
-
 function saveAndQuit() { saveGame(); G.running = false; loadCharSelect(); }
 </script>
 
@@ -601,41 +1324,50 @@ function togglePanel(type) {
   else if (type === 'stats') renderStats();
 }
 
+function getItemRarity(item) {
+  if (item.price >= 5000) return 'epic';
+  if (item.price >= 2000) return 'rare';
+  if (item.price >= 800) return 'uncommon';
+  return 'common';
+}
+
 function renderInventory() {
   const equipped = G.inv.filter(i => i.equipped);
   const bag = G.inv.filter(i => !i.equipped);
-  let html = `<h3 style="color:#ffd700;margin-bottom:12px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
-  html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Equipped:</div>';
-  equipped.forEach(i => { const it = ITEMS[i.itemId]; html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #ffd700;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name} <small style="color:#888;">(${it.slot||''})</small></span><button onclick="unequipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;">Unequip</button></div>`; });
-  html += '<div style="color:#aaa;font-size:12px;margin:10px 0 6px;">Bag:</div>';
-  if (!bag.length) html += '<div style="color:#666;font-size:12px;">Empty</div>';
-  bag.forEach(i => { const it = ITEMS[i.itemId]; let btns = '';
-    if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;margin-left:4px;">Equip</button>`;
-    if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:4px;">Use</button>`;
-    btns += `<button onclick="sellItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:4px;">Sell</button>`;
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small></span>${btns}</div>`;
+  let html = `<div class="panel-title">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>`;
+  html += '<div style="color:#8b7355;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Equipped</div>';
+  equipped.forEach(i => { const it = ITEMS[i.itemId]; const r = getItemRarity(it);
+    html += `<div class="item-card equipped rarity-${r}"><span style="flex:1;">${it.name} <small style="color:#6b5b3a;">(${it.slot||''})</small></span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
+  });
+  html += '<div style="color:#8b7355;font-size:12px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">Bag</div>';
+  if (!bag.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Empty</div>';
+  bag.forEach(i => { const it = ITEMS[i.itemId]; const r = getItemRarity(it); let btns = '';
+    if (it.slot) btns += `<button class="item-btn" onclick="equipItem('${i.uid}')">Equip</button>`;
+    if (it.type==='consumable') btns += `<button class="item-btn use" onclick="useItem('${i.uid}')">Use</button>`;
+    btns += `<button class="item-btn sell" onclick="sellItem('${i.uid}')">Sell</button>`;
+    html += `<div class="item-card rarity-${r}"><span style="flex:1;">${it.name}<br><small style="color:#6b5b3a;">${it.desc||''}</small></span><div style="display:flex;gap:4px;">${btns}</div></div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
 
 function renderStats() {
   const c = G.char, needed = expForLevel(c.level), canAdd = c.statPts > 0;
-  const ab = (stat) => canAdd ? `<button onclick="addStat('${stat}')" style="background:#ffd700;color:#000;border:none;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:6px;">+</button>` : '';
+  const ab = (stat) => canAdd ? `<button class="stat-add-btn" onclick="addStat('${stat}')">+</button>` : '';
   document.getElementById('panel-right').innerHTML = `
-    <h3 style="color:#ffd700;margin-bottom:12px;">Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>
-    <div style="color:#ffd700;text-align:center;margin:10px 0;font-size:13px;">Available Points: ${c.statPts}</div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Level</span><span style="color:#fff;font-weight:bold;">${c.level}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">EXP</span><span style="color:#fff;">${c.exp}/${needed}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Class</span><span style="color:#fff;">${CLASS_DATA[c.cls].name}</span></div>
-    <hr style="border-color:#222;margin:8px 0;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Strength</span><span style="color:#fff;font-weight:bold;">${c.str} ${ab('str')}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Agility</span><span style="color:#fff;font-weight:bold;">${c.agi} ${ab('agi')}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Vitality</span><span style="color:#fff;font-weight:bold;">${c.vit} ${ab('vit')}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Energy</span><span style="color:#fff;font-weight:bold;">${c.ene} ${ab('ene')}</span></div>
-    <hr style="border-color:#222;margin:8px 0;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${c.maxHp}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${c.maxMp}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;"><span style="color:#aaa;">Zen</span><span style="color:#ffcc00;">${c.zen.toLocaleString()}</span></div>
+    <div class="panel-title">Character Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>
+    <div style="color:#ffd700;text-align:center;margin:8px 0 14px;font-size:13px;background:rgba(255,215,0,0.05);padding:6px;border-radius:4px;border:1px solid rgba(255,215,0,0.15);">Available Points: <strong>${c.statPts}</strong></div>
+    <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${c.level}</span></div>
+    <div class="stat-row"><span class="stat-label">EXP</span><span class="stat-value">${c.exp}/${needed}</span></div>
+    <div class="stat-row"><span class="stat-label">Class</span><span class="stat-value" style="color:${CLASS_DATA[c.cls].color};">${CLASS_DATA[c.cls].name}</span></div>
+    <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
+    <div class="stat-row"><span class="stat-label">Strength</span><span class="stat-value">${c.str} ${ab('str')}</span></div>
+    <div class="stat-row"><span class="stat-label">Agility</span><span class="stat-value">${c.agi} ${ab('agi')}</span></div>
+    <div class="stat-row"><span class="stat-label">Vitality</span><span class="stat-value">${c.vit} ${ab('vit')}</span></div>
+    <div class="stat-row"><span class="stat-label">Energy</span><span class="stat-value">${c.ene} ${ab('ene')}</span></div>
+    <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
+    <div class="stat-row"><span class="stat-label">HP</span><span class="stat-value" style="color:#ff6666;">${c.hp}/${c.maxHp}</span></div>
+    <div class="stat-row"><span class="stat-label">MP</span><span class="stat-value" style="color:#6688ff;">${c.mp}/${c.maxMp}</span></div>
+    <div class="stat-row"><span class="stat-label">Zen</span><span class="stat-value" style="color:#ffcc00;">${c.zen.toLocaleString()}</span></div>
   `;
 }
 
@@ -655,19 +1387,16 @@ function equipItem(uid) {
   if (!item) return;
   const it = ITEMS[item.itemId];
   if (!it || !it.slot) return;
-  // Unequip same slot
   G.inv.forEach(i => { if (i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].slot === it.slot) i.equipped = 0; });
   item.equipped = 1;
   gameLog(`Equipped ${it.name}`,'system');
   renderInventory(); saveGame();
 }
-
 function unequipItem(uid) {
   const item = G.inv.find(i=>i.uid===uid);
   if (item) item.equipped = 0;
   renderInventory(); saveGame();
 }
-
 function useItem(uid) {
   const idx = G.inv.findIndex(i=>i.uid===uid);
   if (idx < 0) return;
@@ -678,7 +1407,6 @@ function useItem(uid) {
   gameLog(`Used ${it.name}`,'system');
   renderInventory(); updateUI(); saveGame();
 }
-
 function sellItem(uid) {
   const idx = G.inv.findIndex(i=>i.uid===uid);
   if (idx < 0) return;
@@ -689,18 +1417,22 @@ function sellItem(uid) {
   gameLog(`Sold ${it.name} for ${price} Zen`,'loot');
   renderInventory(); updateUI(); saveGame();
 }
+</script>
 
+
+<script>
+// ===== SHOP =====
 function openShop(shopId, npcName) {
   const items = SHOPS[shopId];
   if (!items) { gameLog('Nothing to offer.','info'); return; }
   currentPanel = 'shop';
   const panel = document.getElementById('panel-right');
   panel.classList.remove('hidden');
-  let html = `<h3 style="color:#ffd700;margin-bottom:12px;">${npcName} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
-  items.forEach(itemId => { const it = ITEMS[itemId];
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;">
-      <span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
-      <button onclick="buyItem('${itemId}')" style="padding:4px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:3px;cursor:pointer;font-size:12px;">Buy</button>
+  let html = `<div class="panel-title">${npcName || 'Shop'} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>`;
+  items.forEach(itemId => { const it = ITEMS[itemId]; const r = getItemRarity(it);
+    html += `<div class="item-card rarity-${r}">
+      <span style="flex:1;">${it.name}<br><small style="color:#6b5b3a;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
+      <button class="item-btn" onclick="buyItem('${itemId}')" style="border-color:#8b6914;color:#ffd700;">Buy</button>
     </div>`;
   });
   panel.innerHTML = html;
@@ -720,8 +1452,21 @@ function buyItem(itemId) {
 // ===== INIT =====
 (function() {
   const session = Store.get('session');
-  if (session) { currentUser = session; loadCharSelect(); }
+  if (session) { currentUser = session; loadCharSelect(); initCharselParticles(); }
+  else { initAuthParticles(); }
+  window.addEventListener('resize', () => {
+    if (authCanvas) { authCanvas.width = window.innerWidth; authCanvas.height = window.innerHeight; }
+    if (charselCanvas) { charselCanvas.width = window.innerWidth; charselCanvas.height = window.innerHeight; }
+  });
 })();
+
+// Override showScreen to init particles
+const _origShowScreen = showScreen;
+showScreen = function(id) {
+  _origShowScreen(id);
+  if (id === 'screen-auth') initAuthParticles();
+  if (id === 'screen-charselect') initCharselParticles();
+};
 </script>
 </body>
 </html>
