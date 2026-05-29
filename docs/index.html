@@ -1226,19 +1226,38 @@ function showShopDetail(itemId) {
 }
 
 function renderInventory() {
-  const equipped = G.inv.filter(i => i.equipped);
+  const SLOTS = ['weapon','helmet','armor','pants','gloves','boots','shield','wings'];
+  const SLOT_LABELS = {weapon:'🗡️ Weapon',helmet:'⛑️ Helm',armor:'🛡️ Armor',pants:'👖 Pants',gloves:'🧤 Gloves',boots:'👢 Boots',shield:'🛡️ Shield',wings:'🪽 Wings'};
+  // Build a map of slot -> equipped item
+  const slotMap = {};
+  G.inv.filter(i=>i.equipped).forEach(i => { const it=ITEMS[i.itemId]; if(it&&it.slot) slotMap[it.slot]=i; });
   const bag = G.inv.filter(i => !i.equipped);
-  let html = `<h3 style="color:#ffd700;margin-bottom:12px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
-  html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Equipped:</div>';
-  equipped.forEach(i => { const it = ITEMS[i.itemId]; const ic = it.img ? `<img src="${it.img}" style="width:28px;height:28px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">` : ''; html += `<div style="display:flex;align-items:center;gap:6px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid ${itemColor(i)==='#fff'?'#ffd700':itemColor(i)};border-radius:4px;font-size:12px;"><span style="flex:1;cursor:pointer;" onclick="showItemDetail('${i.uid}')">${ic}<span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#888;">(${it.slot||''})</small><br><small style="color:#9aa;">${itemSummary(i)}</small></span><button onclick="unequipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;">Unequip</button></div>`; });
-  html += '<div style="color:#aaa;font-size:12px;margin:10px 0 6px;">Bag:</div>';
-  if (!bag.length) html += '<div style="color:#666;font-size:12px;">Empty</div>';
+
+  let html = `<h3 style="color:#ffd700;margin-bottom:8px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
+  // ===== EQUIPMENT SLOT GRID =====
+  html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;">`;
+  SLOTS.forEach(slot => {
+    const i = slotMap[slot];
+    const it = i ? ITEMS[i.itemId] : null;
+    const border = i ? (isExcellent(i)?'#5dff7a':(i.lucky?'#5fd0ff':'#ffd700')) : '#333';
+    const bg = i ? '#1a1a2e' : '#111118';
+    const img = (it && it.img) ? `<img src="${it.img}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">` : `<span style="font-size:20px;opacity:0.3;">${SLOT_LABELS[slot].split(' ')[0]}</span>`;
+    const click = i ? `onclick="showItemDetail('${i.uid}')"` : '';
+    const label = i ? `<span style="color:${itemColor(i)};font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${itemLabel(i)}</span>` : `<span style="color:#555;font-size:9px;">${slot}</span>`;
+    const unequipBtn = i ? `<span onclick="event.stopPropagation();unequipItem('${i.uid}')" style="position:absolute;top:1px;right:2px;color:#f66;font-size:10px;cursor:pointer;" title="Unequip">✕</span>` : '';
+    html += `<div ${click} style="position:relative;background:${bg};border:1px solid ${border};border-radius:6px;padding:4px;text-align:center;cursor:${i?'pointer':'default'};min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">${unequipBtn}${img}${label}</div>`;
+  });
+  html += `</div>`;
+
+  // ===== BAG =====
+  html += `<div style="color:#aaa;font-size:11px;margin:6px 0 4px;">Bag (${bag.length} items):</div>`;
+  if (!bag.length) html += '<div style="color:#555;font-size:11px;padding:8px;text-align:center;">Empty — kill monsters for loot!</div>';
   bag.forEach(i => { const it = ITEMS[i.itemId]; let btns = '';
-    if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;margin-left:4px;">Equip</button>`;
-    if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:4px;">Use</button>`;
-    btns += `<button onclick="sellItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:4px;">Sell</button>`;
-    const ic = it.img ? `<img src="${it.img}" style="width:28px;height:28px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">` : '';
-    html += `<div style="display:flex;align-items:center;gap:6px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid ${isExcellent(i)?'#3a6a3a':'#333'};border-radius:4px;font-size:12px;"><span style="flex:1;cursor:pointer;" onclick="showItemDetail('${i.uid}')">${ic}<span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#888;">(${it.slot||it.type||''})</small><br><small style="color:#9aa;">${itemSummary(i)}</small></span>${btns}</div>`;
+    if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:3px;cursor:pointer;margin-left:3px;">Equip</button>`;
+    if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:3px;">Use</button>`;
+    btns += `<button onclick="sellItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:3px;">Sell</button>`;
+    const ic = it.img ? `<img src="${it.img}" style="width:24px;height:24px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+    html += `<div style="display:flex;align-items:center;gap:5px;padding:4px;margin:3px 0;background:#12121e;border:1px solid ${isExcellent(i)?'#3a6a3a':'#282830'};border-radius:4px;font-size:11px;">${ic}<span style="flex:1;cursor:pointer;overflow:hidden;" onclick="showItemDetail('${i.uid}')"><span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#666;">${it.slot||it.type||''}</small></span>${btns}</div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
