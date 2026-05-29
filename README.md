@@ -6,6 +6,9 @@ A fully playable MU Online browser game. No downloads, no installs, no server re
 
 ## 🎮 Play Now
 
+> 📱 **Mobile-friendly:** the game is fully responsive and touch-enabled — open any of
+> the hosted URLs below on your phone and **tap** to move and attack.
+
 ### Option A: GitHub Pages (Recommended)
 
 1. Make this repository **public** (Settings → Danger Zone → Change visibility → Public)
@@ -238,10 +241,16 @@ MUBrowser-Test/
 
 ### Vercel (Free, works with private repos)
 
+This repo includes a `vercel.json`, so it deploys with **zero configuration** — the
+game is served at the site root even though the file lives in `docs/`.
+
 1. Go to https://vercel.com
-2. Import project → Select GitHub repo
-3. Root directory: `docs`
-4. Deploy
+2. **Add New → Project → Import** this GitHub repo
+3. Framework Preset: **Other** (leave Build/Output settings empty)
+4. Click **Deploy** — you get a `https://<project>.vercel.app` URL
+5. The root URL (`/`) and `/play` both load the game (see `vercel.json`)
+
+> Alternative without `vercel.json`: set the project's **Root Directory** to `docs`.
 
 ### Cloudflare Pages (Free)
 
