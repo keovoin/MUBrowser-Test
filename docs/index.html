@@ -2,11 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
 <title>MU Online - Browser Edition</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; }
+html, body { width: 100%; height: 100%; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+#game-canvas { display: block; touch-action: none; }
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 .screen.active { display: flex; }
 .hidden { display: none !important; }
@@ -24,6 +29,29 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 .btn-secondary { padding: 10px 20px; background: #16213e; border: 1px solid #ffd700; color: #ffd700; cursor: pointer; border-radius: 4px; margin: 10px; }
 .btn-link { background: none; border: none; color: #888; cursor: pointer; margin: 10px; text-decoration: underline; }
 .error-msg { color: #ff4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
+/* ===== Mobile / responsive ===== */
+@media (max-width: 700px), (pointer: coarse) {
+  .game-title { font-size: 36px; letter-spacing: 2px; }
+  .auth-container { min-width: 0 !important; width: 92vw !important; max-width: 460px; padding: 22px !important; }
+  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; }
+  #create-modal > div { min-width: 0 !important; width: 92vw !important; max-width: 460px; }
+  /* HP/MP/EXP bars shrink to fit narrow screens */
+  #ui-bars { gap: 4px; width: 96vw; justify-content: center; bottom: 6px; }
+  #ui-bars > div { width: 30vw !important; min-width: 0 !important; }
+  /* Bigger, thumb-friendly action buttons */
+  #ui-actions { bottom: 64px; right: 8px; gap: 8px; }
+  #ui-actions button { width: 50px !important; height: 50px !important; font-size: 22px !important; }
+  /* Right-side panels become near-full-width sheets */
+  #panel-right { width: 94vw !important; max-width: 380px; right: 3vw !important; top: 46px !important; max-height: calc(100dvh - 130px) !important; }
+  /* Combat log smaller and out of the way of the buttons */
+  #ui-log { width: 58vw !important; max-height: 96px !important; bottom: 64px; font-size: 11px; }
+  #ui-topbar { gap: 10px !important; font-size: 11px !important; padding: 6px 10px !important; flex-wrap: wrap; }
+}
+@media (max-width: 700px) and (orientation: landscape) {
+  #ui-actions { bottom: 8px; }
+  #ui-log { bottom: 8px; max-height: 70px !important; }
+  #ui-bars { bottom: 4px; }
+}
 </style>
 </head>
 <body>
@@ -338,7 +366,7 @@ function deleteChar(id) {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char: null, inv: [], map: null, mobs: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [] };
+let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [] };
 let canvas, ctx;
 
 function enterGame(charId) {
@@ -353,9 +381,14 @@ function enterGame(charId) {
   resizeCanvas();
   window.onresize = resizeCanvas;
   canvas.onclick = handleClick;
+  // Touch support for mobile: tap to move / attack (preventDefault stops scroll, zoom and the ghost click).
+  // Property assignment (not addEventListener) so re-entering the game doesn't stack duplicate handlers.
+  canvas.ontouchstart = (e) => { e.preventDefault(); handleClick(e); };
+  canvas.ontouchmove = (e) => { e.preventDefault(); };
   G.running = true;
   G.lastT = Date.now();
   G.tileVar = Array.from({length:256*256}, () => Math.random()*0.15-0.075);
+  spawnCompanions();
   buildActions();
   updateUI();
   gameLog('Welcome to '+G.map.name+'!','system');
@@ -369,6 +402,12 @@ function loadMap(mapId) {
   G.mobs = G.map.monsters.map((m,i) => ({ ...MONSTERS[m.id], x:m.x, y:m.y, spawnX:m.x, spawnY:m.y, curHp:MONSTERS[m.id].hp, alive:true, respawn:0, uid:mapId+'_'+i }));
   G.target = null;
   G.moveTo = null;
+  // Companions follow you to the new map: reset them next to the player and drop targets
+  (G.companions || []).forEach(comp => {
+    comp.x = G.char.px + (Math.random()*30 - 15);
+    comp.y = G.char.py + (Math.random()*30 - 15);
+    comp.target = null;
+  });
 }
 
 function buildActions() {
@@ -409,6 +448,8 @@ function update(dt) {
       if (Math.sqrt(dx*dx+dy*dy) < 30) { G.moveTo = null; doAttack(m); }
     } else { G.target = null; }
   }
+  // Companion bots: follow the player, only engage monsters near the player
+  updateCompanions(dt);
   // Monster respawn
   G.mobs.forEach(m => { if (!m.alive) { m.respawn -= dt; if (m.respawn <= 0) { m.alive = true; m.curHp = m.hp; m.x = m.spawnX; m.y = m.spawnY; } } });
   // Portal check
@@ -418,25 +459,164 @@ function update(dt) {
   });
 }
 
-function doAttack(m) {
-  G.atkCd = 1000;
+// ===== DERIVED STATS =====
+// Centralised stat calculation. AGI now contributes to DEFENSE and to an
+// EVADE / dodge chance (so monster attacks can miss), in addition to attack.
+function computeStats(c, inv) {
+  const cd = CLASS_DATA[c.cls] || {};
+  let weaponAtk = 0, armorDef = 0;
+  (inv || []).filter(i => i.equipped).forEach(i => {
+    const it = ITEMS[i.itemId];
+    if (!it) return;
+    if (it.attack) weaponAtk += it.attack;
+    if (it.defense) armorDef += it.defense;
+  });
+  // Outgoing damage (kept consistent with the original formula)
+  const statAtk = c.str * (cd.dmgPerStr || 1) + c.agi * (cd.dmgPerAgi || 0.3);
+  const baseDmg = statAtk + weaponAtk;
+  const minDmg = Math.max(1, Math.floor(baseDmg * 0.8));
+  const maxDmg = Math.max(1, Math.floor(baseDmg * 1.2));
+  // AGI -> Defense (added on top of equipped armor)
+  const agiDef = Math.floor(c.agi / 4);
+  const defense = armorDef + agiDef;
+  // AGI -> Evade / Dodge chance (0..60%), scales with AGI and a little with level
+  const evade = Math.min(0.6, (c.agi + (c.level || 1) * 0.5) / 600);
+  // AGI -> attack speed and a small crit chance
+  const atkSpeed = (cd.speed || 1) + c.agi * 0.01;
+  const crit = Math.min(0.5, c.agi / 600);
+  return { weaponAtk, armorDef, baseDmg, minDmg, maxDmg, agiDef, defense, evade, atkSpeed, crit };
+}
+
+// ===== COMPANION BOTS ("multiplayer feel") =====
+// 2-4 NPC "players" that follow you around and only attack monsters near YOUR
+// current position. They drop a far / previous target and prioritise following.
+const COMPANION_NAMES = ['Aoki','Zephyr','Kserk','Lunaa','Drako','Mira','Vexx','Nyx','Orin','Talon','Sora','Riven','Kael','Pyra','Bolt','Echo','Frost','Sable'];
+// Tunables (all in world units)
+const BOT_FOLLOW_MAX = 48;  // if farther than this from you, abandon combat and catch up
+const BOT_AGGRO = 60;       // only target monsters within this radius of YOU
+const BOT_LEASH = 80;       // drop the target if it drifts farther than this from YOU
+const BOT_ATK_RANGE = 16;
+
+function spawnCompanions() {
+  const n = 2 + Math.floor(Math.random() * 3); // 2-4
+  const classes = Object.keys(CLASS_DATA);
+  const pool = COMPANION_NAMES.slice();
+  G.companions = [];
+  for (let i = 0; i < n; i++) {
+    let name = 'Player' + (i + 1);
+    if (pool.length) name = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const cls = classes[Math.floor(Math.random() * classes.length)];
+    const level = Math.max(1, (G.char.level || 1) + Math.floor(Math.random() * 7) - 3);
+    G.companions.push({
+      name, cls, level, color: CLASS_DATA[cls].color,
+      x: G.char.px + (Math.random() * 30 - 15),
+      y: G.char.py + (Math.random() * 30 - 15),
+      target: null, atkCd: Math.random() * 800, swing: 0
+    });
+  }
+}
+
+function updateCompanions(dt) {
   const c = G.char;
-  const cd = CLASS_DATA[c.cls];
-  let baseDmg = c.str * (cd.dmgPerStr||1) + c.agi * (cd.dmgPerAgi||0.3);
-  // Weapon bonus
-  G.inv.filter(i=>i.equipped).forEach(i => { const it = ITEMS[i.itemId]; if (it&&it.attack) baseDmg += it.attack; });
-  const pDmg = Math.max(1, Math.floor(baseDmg * (0.8+Math.random()*0.4)));
-  // Monster damage
-  let armor = 0;
-  G.inv.filter(i=>i.equipped).forEach(i => { const it = ITEMS[i.itemId]; if (it&&it.defense) armor += it.defense; });
-  const mDmg = Math.max(1, Math.floor(m.attack*(0.8+Math.random()*0.4) - armor*0.5 - c.agi*0.2));
-  
+  (G.companions || []).forEach(comp => {
+    if (comp.atkCd > 0) comp.atkCd -= dt;
+    if (comp.swing > 0) comp.swing -= dt;
+    const dpx = c.px - comp.x, dpy = c.py - comp.y;
+    const distPlayer = Math.sqrt(dpx * dpx + dpy * dpy) || 0.0001;
+
+    // 1) Validate the current target: it must still be alive AND remain close to
+    //    the player's CURRENT position. This is what stops bots from getting stuck
+    //    attacking the previous monster after you walk away.
+    if (comp.target) {
+      const tm = G.mobs.find(x => x.uid === comp.target);
+      if (!tm || !tm.alive) {
+        comp.target = null;
+      } else {
+        const tdx = tm.x - c.px, tdy = tm.y - c.py;
+        if (Math.sqrt(tdx * tdx + tdy * tdy) > BOT_LEASH) comp.target = null; // far/previous -> drop
+      }
+    }
+
+    // 2) Following ALWAYS takes priority: if we've drifted too far from you, drop
+    //    whatever we were doing and run back to you.
+    if (distPlayer > BOT_FOLLOW_MAX) {
+      comp.target = null;
+      const spd = 2.9; // slightly faster than the player so they can keep up
+      comp.x += (dpx / distPlayer) * spd;
+      comp.y += (dpy / distPlayer) * spd;
+      return;
+    }
+
+    // 3) Near you: acquire a target only among monsters close to YOU, picking the
+    //    one nearest to the companion.
+    if (!comp.target) {
+      let best = null, bestD = Infinity;
+      for (const m of G.mobs) {
+        if (!m.alive) continue;
+        const mdx = m.x - c.px, mdy = m.y - c.py;
+        if (Math.sqrt(mdx * mdx + mdy * mdy) > BOT_AGGRO) continue; // not near the player -> ignore
+        const cdx = m.x - comp.x, cdy = m.y - comp.y;
+        const d = Math.sqrt(cdx * cdx + cdy * cdy);
+        if (d < bestD) { bestD = d; best = m; }
+      }
+      if (best) comp.target = best.uid;
+    }
+
+    // 4) Engage the (nearby) target, otherwise loosely follow you.
+    if (comp.target) {
+      const tm = G.mobs.find(x => x.uid === comp.target);
+      if (tm && tm.alive) {
+        const adx = tm.x - comp.x, ady = tm.y - comp.y;
+        const adist = Math.sqrt(adx * adx + ady * ady) || 0.0001;
+        if (adist > BOT_ATK_RANGE) {
+          const spd = 2.6;
+          comp.x += (adx / adist) * spd;
+          comp.y += (ady / adist) * spd;
+        } else if (comp.atkCd <= 0) {
+          companionAttack(comp, tm);
+        }
+      }
+    } else if (distPlayer > 18) {
+      const spd = 1.8; // hover around you at a comfortable spacing
+      comp.x += (dpx / distPlayer) * spd;
+      comp.y += (dpy / distPlayer) * spd;
+    }
+  });
+}
+
+function companionAttack(comp, m) {
+  comp.atkCd = 850 + Math.random() * 350;
+  comp.swing = 200;
+  const base = (comp.level || 1) * 1.2 + 4;
+  const dmg = Math.max(1, Math.floor(base * (0.8 + Math.random() * 0.4)));
+  m.curHp -= dmg;
+  addDmg(m.x, m.y - 10, dmg, '#9fd3ff');
+  if (m.curHp <= 0) killMonster(m); // assist credit: rewards still go to the player
+}
+
+function doAttack(m) {
+  const c = G.char;
+  const st = computeStats(c, G.inv);
+  G.atkCd = Math.max(350, Math.floor(1000 / (st.atkSpeed || 1)));
+  // Player hits the monster (AGI gives a chance to crit)
+  let pDmg = Math.max(1, Math.floor(st.baseDmg * (0.8 + Math.random() * 0.4)));
+  let crit = false;
+  if (Math.random() < st.crit) { pDmg = Math.floor(pDmg * 1.5); crit = true; }
   m.curHp -= pDmg;
-  c.hp = Math.max(0, c.hp - mDmg);
-  addDmg(m.x, m.y-10, pDmg, '#ffff00');
-  if (mDmg > 0) addDmg(c.px, c.py-10, mDmg, '#ff4444');
-  gameLog(`Hit ${m.name} for ${pDmg}! Took ${mDmg} dmg.`,'combat');
-  
+  addDmg(m.x, m.y - 10, crit ? pDmg + '!' : pDmg, crit ? '#ff9900' : '#ffff00');
+  // Monster strikes back -- AGI-based evade can make it MISS entirely
+  let mDmg = 0, dodged = false;
+  if (Math.random() < st.evade) {
+    dodged = true;
+    addDmg(c.px, c.py - 10, 'MISS', '#88ddff');
+  } else {
+    mDmg = Math.max(1, Math.floor(m.attack * (0.8 + Math.random() * 0.4) - st.defense * 0.5));
+    c.hp = Math.max(0, c.hp - mDmg);
+    addDmg(c.px, c.py - 10, mDmg, '#ff4444');
+  }
+  gameLog(dodged
+    ? `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Dodged its attack.`
+    : `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Took ${mDmg} dmg.`, 'combat');
   if (m.curHp <= 0) { killMonster(m); }
   if (c.hp <= 0) { playerDied(); }
   updateUI();
@@ -445,6 +625,7 @@ function doAttack(m) {
 function killMonster(m) {
   m.alive = false; m.respawn = 15000;
   G.target = null;
+  (G.companions || []).forEach(cc => { if (cc.target === m.uid) cc.target = null; });
   const c = G.char;
   const expG = m.exp, zenG = m.zen + Math.floor(Math.random()*m.zen*0.5);
   c.exp += expG; c.zen += zenG;
@@ -476,8 +657,11 @@ function expForLevel(lv) { return Math.floor(100 * Math.pow(1.5, lv-1)); }
 function handleClick(e) {
   const rect = canvas.getBoundingClientRect();
   const cam = getCamera();
-  const wx = (e.clientX - rect.left + cam.x) / 4;
-  const wy = (e.clientY - rect.top + cam.y) / 4;
+  const pt = (e.touches && e.touches[0]) ? e.touches[0]
+           : (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0]
+           : e;
+  const wx = (pt.clientX - rect.left + cam.x) / 4;
+  const wy = (pt.clientY - rect.top + cam.y) / 4;
   // Check monster click
   for (const m of G.mobs) {
     if (!m.alive) continue;
@@ -526,6 +710,15 @@ function render() {
   map.npcs.forEach(n => { const sx=n.x*4-cam.x, sy=n.y*4-cam.y; ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2); ctx.fillStyle='#44aaff'; ctx.fill(); ctx.strokeStyle='#88ccff'; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#88ccff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(n.name,sx,sy-20); ctx.fillStyle='#ffff00'; ctx.font='bold 14px sans-serif'; ctx.fillText('!',sx,sy+5); });
   // Monsters
   G.mobs.forEach(m => { if (!m.alive) return; const sx=m.x*4-cam.x, sy=m.y*4-cam.y; if(sx<-40||sx>canvas.width+40||sy<-40||sy>canvas.height+40) return; ctx.beginPath(); ctx.arc(sx,sy,12,0,Math.PI*2); ctx.fillStyle=monColor(m.level); ctx.fill(); if(G.target===m.uid){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.stroke();} ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(m.name,sx,sy-18); const hp=m.curHp/m.hp; ctx.fillStyle='#333';ctx.fillRect(sx-15,sy-14,30,4); ctx.fillStyle=hp>0.5?'#0c0':hp>0.25?'#cc0':'#c00';ctx.fillRect(sx-15,sy-14,30*hp,4); });
+  // Companion "players" (multiplayer feel) - drawn like players with name + Lv.X
+  (G.companions||[]).forEach(comp => {
+    const cx2=comp.x*4-cam.x, cy2=comp.y*4-cam.y;
+    if(cx2<-40||cx2>canvas.width+40||cy2<-40||cy2>canvas.height+40) return;
+    if(comp.swing>0){ ctx.beginPath(); ctx.arc(cx2,cy2,18,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,150,0.5)'; ctx.lineWidth=2; ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(cx2,cy2,13,0,Math.PI*2); ctx.fillStyle=comp.color; ctx.fill(); ctx.strokeStyle='#9fd3ff'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.fillText('Lv.'+comp.level,cx2,cy2-30);
+    ctx.fillStyle='#9fd3ff'; ctx.font='bold 11px sans-serif'; ctx.fillText(comp.name,cx2,cy2-19);
+  });
   // Player
   const px=c.px*4-cam.x, py=c.py*4-cam.y;
   ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.fillStyle=CLASS_DATA[c.cls].color; ctx.fill(); ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.stroke();
@@ -620,6 +813,7 @@ function renderInventory() {
 
 function renderStats() {
   const c = G.char, needed = expForLevel(c.level), canAdd = c.statPts > 0;
+  const st = computeStats(c, G.inv);
   const ab = (stat) => canAdd ? `<button onclick="addStat('${stat}')" style="background:#ffd700;color:#000;border:none;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:6px;">+</button>` : '';
   document.getElementById('panel-right').innerHTML = `
     <h3 style="color:#ffd700;margin-bottom:12px;">Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>
@@ -632,6 +826,13 @@ function renderStats() {
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Agility</span><span style="color:#fff;font-weight:bold;">${c.agi} ${ab('agi')}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Vitality</span><span style="color:#fff;font-weight:bold;">${c.vit} ${ab('vit')}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Energy</span><span style="color:#fff;font-weight:bold;">${c.ene} ${ab('ene')}</span></div>
+    <hr style="border-color:#222;margin:8px 0;">
+    <div style="color:#ffcc66;font-size:12px;margin-bottom:4px;">Combat</div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Damage</span><span style="color:#fff;">${st.minDmg} - ${st.maxDmg}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Defense</span><span style="color:#fff;">${st.defense} <small style="color:#7fae7f;">(AGI +${st.agiDef})</small></span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Evade / Dodge</span><span style="color:#88ddff;">${(st.evade*100).toFixed(1)}% <small style="color:#5a8aa0;">(AGI)</small></span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Critical</span><span style="color:#ff9900;">${(st.crit*100).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Atk Speed</span><span style="color:#fff;">${st.atkSpeed.toFixed(2)}</span></div>
     <hr style="border-color:#222;margin:8px 0;">
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${c.maxHp}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${c.maxMp}</span></div>
