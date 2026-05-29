@@ -1360,10 +1360,18 @@ function toggleAFK() {
 function afkTick(dt) {
   if (!afkMode) return;
   const c = G.char;
-  // Auto-target nearest alive monster
+  // Auto-target nearest alive monster (skip those near portals to avoid teleport)
   if (!G.target || !G.mobs.find(x => x.uid === G.target && x.alive)) {
     let best = null, bd = Infinity;
-    for (const m of G.mobs) { if (!m.alive) continue; const d = Math.hypot(m.x - c.px, m.y - c.py); if (d < bd) { bd = d; best = m; } }
+    for (const m of G.mobs) {
+      if (!m.alive) continue;
+      // Skip monsters too close to a portal (would cause accidental teleport)
+      let nearPortal = false;
+      for (const p of G.map.portals) { if (Math.hypot(m.x - p.x, m.y - p.y) < 20) { nearPortal = true; break; } }
+      if (nearPortal) continue;
+      const d = Math.hypot(m.x - c.px, m.y - c.py);
+      if (d < bd) { bd = d; best = m; }
+    }
     if (best) { G.target = best.uid; G.moveTo = { x: best.x, y: best.y }; }
   } else {
     const m = G.mobs.find(x => x.uid === G.target);
@@ -1407,6 +1415,7 @@ function update(dt) {
   // AFK mode: auto-target, auto-potion, auto-level
   afkTick(dt);
   G.map.portals.forEach(p => {
+    if (afkMode) return; // AFK mode: don't accidentally walk into portals
     const dx = p.x - c.px, dy = p.y - c.py;
     if (Math.sqrt(dx*dx+dy*dy) < 10) { c.mapId = p.to; c.px = p.tx; c.py = p.ty; loadMap(p.to); gameLog('Entered '+G.map.name+'!','system'); updateUI(); saveGame(); }
   });
@@ -1435,9 +1444,10 @@ function computeStats(char, inv){
   const cd = CLASS_DATA[char.cls] || {};
   inv = inv || [];
   const eq = inv.filter(i => i.equipped);
-  // base damage from attributes
+  // base damage from attributes + level scaling (level contributes directly to damage)
   let base = char.str*(cd.dmgPerStr||0) + char.agi*(cd.dmgPerAgi||0);
   if (cd.dmgPerEne) base += char.ene*cd.dmgPerEne;
+  base += char.level * 2; // level bonus: +2 damage per level
   let weaponAtk = 0, defense = 0;
   let dmgPct = 0, defPct = 0, lifePct = 0, manaPct = 0, atkSpeedBonus = 0, zenPct = 0, luckCount = 0;
   eq.forEach(i => {
@@ -1456,6 +1466,8 @@ function computeStats(char, inv){
       else if (o.indexOf('ZenDrop') >= 0) zenPct += 30;
     });
   });
+  // Level and AGI contribute to defense (so stats actually help survivability)
+  defense += Math.floor(char.level * 0.5) + Math.floor(char.agi * 0.15);
   const baseDmg = base + weaponAtk;
   let dmgMin = Math.max(1, Math.floor(baseDmg * 0.8));
   let dmgMax = Math.max(dmgMin, Math.floor(baseDmg * 1.2));
@@ -2469,16 +2481,32 @@ function itemReqHtml(itemId, char){
 }
 
 function renderInventory() {
-  const equipped = G.inv.filter(i => i.equipped);
+  const SLOTS = ['weapon','helmet','armor','shield','boots'];
+  const SLOT_ICONS = {weapon:'⚔️',helmet:'⛑️',armor:'🛡️',shield:'🔰',boots:'👢'};
+  const slotMap = {};
+  G.inv.filter(i=>i.equipped).forEach(i => { const it=ITEMS[i.itemId]; if(it&&it.slot) slotMap[it.slot]=i; });
   const bag = G.inv.filter(i => !i.equipped);
+
   let html = `<div class="panel-title">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>`;
-  html += '<div style="color:#8b7355;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Equipped</div>';
-  if (!equipped.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Nothing equipped</div>';
-  equipped.forEach(i => { const it = ITEMS[i.itemId]; if (!it) return; const r = getItemRarity(it);
-    html += `<div class="item-card equipped rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span> <small style="color:#6b5b3a;">(${it.slot||''})</small><br><small style="color:#7a8a6a;">${itemStatsLine(i)}</small>${itemReqHtml(i.itemId, G.char)}</span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
+
+  // ===== EQUIPMENT SLOT GRID =====
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:10px;">`;
+  SLOTS.forEach(slot => {
+    const i = slotMap[slot];
+    const it = i ? ITEMS[i.itemId] : null;
+    const border = i ? (it && it.price >= 10000 ? '#ffd700' : '#8b7355') : '#2a2420';
+    const bg = i ? 'rgba(20,16,12,0.9)' : 'rgba(10,8,6,0.7)';
+    const img = (it && it.img) ? `<img src="${it.img}" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">` : `<span style="font-size:22px;opacity:0.25;">${SLOT_ICONS[slot]}</span>`;
+    const label = i ? `<span style="color:${itemColor(i)};font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;display:block;">${itemDisplayName(i)}</span>` : `<span style="color:#4a3a2a;font-size:9px;text-transform:uppercase;">${slot}</span>`;
+    const click = i ? `onclick="showItemTooltip('${i.uid}')"` : '';
+    const unequip = i ? `<span onclick="event.stopPropagation();unequipItem('${i.uid}')" style="position:absolute;top:1px;right:3px;color:#c66;font-size:11px;cursor:pointer;line-height:1;" title="Unequip">✕</span>` : '';
+    html += `<div ${click} style="position:relative;background:${bg};border:1px solid ${border};border-radius:6px;padding:5px 3px;text-align:center;cursor:${i?'pointer':'default'};min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">${unequip}${img}${label}</div>`;
   });
-  html += '<div style="color:#8b7355;font-size:12px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">Bag</div>';
-  if (!bag.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Empty</div>';
+  html += `</div>`;
+
+  // ===== BAG =====
+  html += `<div style="color:#8b7355;font-size:11px;margin:4px 0 6px;text-transform:uppercase;letter-spacing:1px;">Bag (${bag.length})</div>`;
+  if (!bag.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Empty — kill monsters for loot!</div>';
   bag.forEach(i => { const it = ITEMS[i.itemId]; if (!it) return; const r = getItemRarity(it); let btns = '';
     if (it.slot) btns += `<button class="item-btn" onclick="equipItem('${i.uid}')">Equip</button>`;
     if (it.type==='consumable') btns += `<button class="item-btn use" onclick="useItem('${i.uid}')">Use</button>`;
