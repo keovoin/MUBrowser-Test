@@ -1236,7 +1236,7 @@ function animateCharsel() {
 // G.bots replaces the old single G.bot: an array of 2-4 allied companions. G.netPlayers
 // holds live online players from the presence poll. (Legacy note: code that referenced the
 // single G.bot has been migrated to iterate G.bots.)
-let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bots:[], ghosts:[], netPlayers:[] };
+let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bots:[], ghosts:[], netPlayers:[], autoLevel:false };
 let canvas, ctx;
 
 // Recompute derived combat stats from char + equipped items
@@ -1462,7 +1462,13 @@ function afkTick(dt) {
     const pot = G.inv.find(i => !i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].healHp);
     if (pot) useItem(pot.uid);
   }
-  // (Stats are allocated manually by the user, not auto)
+  // (Stats are allocated manually by the user — unless auto-level checkbox is ticked)
+  if (G.autoLevel && c.statPts > 0) {
+    const main = c.cls === 'dark_wizard' ? 'ene' : (c.cls === 'fairy_elf' ? 'agi' : 'str');
+    c[main] += c.statPts; c.statPts = 0;
+    recompute(); updateUI(); saveGame();
+    gameLog('Auto-level: allocated stats to ' + main.toUpperCase(), 'system');
+  }
 }
 
 function update(dt) {
@@ -2662,6 +2668,10 @@ function renderStats() {
   document.getElementById('panel-right').innerHTML = `
     <div class="panel-title">Character Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>
     <div style="color:#ffd700;text-align:center;margin:8px 0 14px;font-size:13px;background:rgba(255,215,0,0.05);padding:6px;border-radius:4px;border:1px solid rgba(255,215,0,0.15);">Available Points: <strong>${c.statPts}</strong></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px;background:rgba(0,255,0,0.03);border:1px solid rgba(0,255,0,0.15);border-radius:4px;">
+      <input type="checkbox" id="chk-autolevel" ${G.autoLevel?'checked':''} onchange="G.autoLevel=this.checked;gameLog('Auto-level '+(G.autoLevel?'ON':'OFF'),'system');" style="width:16px;height:16px;cursor:pointer;">
+      <label for="chk-autolevel" style="color:#8b8;font-size:12px;cursor:pointer;">Auto-Level (allocate points to main stat on level up)</label>
+    </div>
     <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${c.level}</span></div>
     <div class="stat-row"><span class="stat-label">EXP</span><span class="stat-value">${c.exp}/${needed}</span></div>
     <div class="stat-row"><span class="stat-label">Class</span><span class="stat-value" style="color:${CLASS_DATA[c.cls].color};">${CLASS_DATA[c.cls].name}</span></div>
