@@ -75,6 +75,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <button type="submit" class="btn-primary">Create Account</button>
 </form>
 <p id="auth-error" class="error-msg"></p>
+<button type="button" class="btn-link" onclick="openImport()" style="font-size:12px;">📥 Import account from another device</button>
 </div>
 </div>
 
@@ -85,6 +86,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <h2 style="color:#ffd700;margin-bottom:20px;">Select Character</h2>
 <div id="character-list"></div>
 <button class="btn-secondary" onclick="showCreateModal()">Create New Character</button>
+<br>
+<button class="btn-link" onclick="openExport()">📤 Export account (to play on another device)</button>
 <button class="btn-link" onclick="doLogout()">Logout</button>
 </div>
 <div id="create-modal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;z-index:100;">
@@ -133,6 +136,17 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <div id="item-modal" class="hidden" style="pointer-events:auto;position:absolute;inset:0;background:rgba(0,0,0,0.7);display:flex;z-index:200;" onclick="if(event.target===this)this.classList.add('hidden')">
 <div id="item-modal-body" style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:18px;min-width:240px;max-width:88vw;max-height:80vh;overflow:auto;"></div>
 </div>
+</div>
+</div>
+
+
+<div id="transfer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.78);display:flex;z-index:300;" onclick="if(event.target===this)this.classList.add('hidden')">
+<div style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:20px;width:92vw;max-width:460px;">
+<h3 id="transfer-title" style="color:#ffd700;margin-bottom:8px;">Transfer Account</h3>
+<p id="transfer-desc" style="color:#aaa;font-size:12px;margin-bottom:10px;"></p>
+<textarea id="transfer-text" style="width:100%;height:120px;background:#0e0e1e;border:1px solid #333;color:#cfe;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:vertical;" spellcheck="false"></textarea>
+<div id="transfer-actions" style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;"></div>
+<p id="transfer-msg" style="color:#8f8;font-size:12px;min-height:16px;margin-top:6px;"></p>
 </div>
 </div>
 
@@ -300,6 +314,89 @@ function doLogin(e) {
 
 function doLogout() { Store.del('session'); currentUser = null; showScreen('screen-auth'); }
 function showErr(msg) { document.getElementById('auth-error').textContent = msg; }
+
+// ===== ACCOUNT TRANSFER (cross-device export / import) =====
+// localStorage is per-device, so accounts don't follow you between browsers/phones.
+// These let you carry your whole account (characters + inventory with all item
+// options) to another device via a copy-paste code.
+function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64decode(code) { return decodeURIComponent(escape(atob(code))); }
+
+function exportCodeFor(username) {
+  const acc = getAccounts().find(a => a.username === username);
+  if (!acc) return null;
+  const characters = getChars().filter(c => c.owner === username);
+  const inv = {};
+  characters.forEach(c => { inv[c.id] = getInv(c.id); });
+  return b64encode(JSON.stringify({ v: 1, exportedAt: Date.now(), account: acc, characters, inv }));
+}
+
+function importCode(code) {
+  let blob;
+  try { blob = JSON.parse(b64decode((code || '').trim())); }
+  catch (e) { return { ok: false, msg: 'Invalid code - could not read it.' }; }
+  if (!blob || !blob.account || !blob.account.username || !Array.isArray(blob.characters)) {
+    return { ok: false, msg: 'Invalid account data.' };
+  }
+  const accounts = getAccounts();
+  const ai = accounts.findIndex(a => a.username === blob.account.username);
+  if (ai >= 0) accounts[ai] = blob.account; else accounts.push(blob.account);
+  saveAccounts(accounts);
+  const chars = getChars();
+  blob.characters.forEach(ch => { const i = chars.findIndex(x => x.id === ch.id); if (i >= 0) chars[i] = ch; else chars.push(ch); });
+  saveChars(chars);
+  Object.keys(blob.inv || {}).forEach(id => saveInv(id, blob.inv[id]));
+  return { ok: true, msg: 'Imported! Log in as "' + blob.account.username + '" to play your characters here.', username: blob.account.username };
+}
+
+function openExport() {
+  const code = exportCodeFor(currentUser);
+  const modal = document.getElementById('transfer-modal');
+  document.getElementById('transfer-title').textContent = '📤 Export Account';
+  document.getElementById('transfer-desc').textContent = 'Copy this code, then on your other device tap "Import account" and paste it.';
+  const ta = document.getElementById('transfer-text');
+  ta.value = code || ''; ta.readOnly = true;
+  document.getElementById('transfer-msg').textContent = code ? '' : 'No account to export.';
+  document.getElementById('transfer-actions').innerHTML =
+    `<button class="btn-secondary" onclick="copyTransfer()">Copy</button>` +
+    `<button class="btn-link" onclick="document.getElementById('transfer-modal').classList.add('hidden')">Close</button>`;
+  modal.classList.remove('hidden');
+}
+
+function openImport() {
+  const modal = document.getElementById('transfer-modal');
+  document.getElementById('transfer-title').textContent = '📥 Import Account';
+  document.getElementById('transfer-desc').textContent = 'Paste the code you exported from your other device, then tap Import.';
+  const ta = document.getElementById('transfer-text');
+  ta.value = ''; ta.readOnly = false;
+  document.getElementById('transfer-msg').textContent = '';
+  document.getElementById('transfer-actions').innerHTML =
+    `<button class="btn-primary" style="padding:8px 16px;" onclick="doImport()">Import</button>` +
+    `<button class="btn-link" onclick="document.getElementById('transfer-modal').classList.add('hidden')">Close</button>`;
+  modal.classList.remove('hidden');
+}
+
+function doImport() {
+  const code = document.getElementById('transfer-text').value;
+  const r = importCode(code);
+  const msgEl = document.getElementById('transfer-msg');
+  msgEl.style.color = r.ok ? '#8f8' : '#ff6666';
+  msgEl.textContent = r.msg;
+  if (r.ok) {
+    const ln = document.getElementById('login-username'); if (ln) ln.value = r.username;
+    setTimeout(() => document.getElementById('transfer-modal').classList.add('hidden'), 1600);
+  }
+}
+
+function copyTransfer() {
+  const ta = document.getElementById('transfer-text');
+  ta.select();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value);
+    else document.execCommand('copy');
+    document.getElementById('transfer-msg').textContent = 'Copied to clipboard!';
+  } catch (e) { document.getElementById('transfer-msg').textContent = 'Press Ctrl/Cmd+C to copy.'; }
+}
 
 // ===== CHARACTER SELECT =====
 function loadCharSelect() {
