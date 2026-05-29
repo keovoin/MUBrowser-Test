@@ -46,6 +46,7 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
 <h2 class="section-title">Select Character</h2>
 <div id="character-list"></div>
 <button class="btn-secondary" onclick="showCreateModal()">Create New Character</button>
+<div id="charsel-actions"></div>
 <button class="btn-link" onclick="doLogout()">Logout</button>
 </div>
 <div id="create-modal" class="hidden modal-overlay">
@@ -56,6 +57,22 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
 <button class="btn-primary" onclick="doCreateChar()">Create</button>
 <button class="btn-link" onclick="hideCreateModal()">Cancel</button>
 <p id="create-error" class="error-msg"></p>
+</div>
+</div>
+<!-- Admin Panel (GM/Admin only) -->
+<div id="admin-modal" class="hidden modal-overlay">
+<div class="modal-box admin-box">
+<h3 class="section-title">🛡️ Admin Panel</h3>
+<div id="admin-content"></div>
+<button class="btn-link" onclick="closeAdminPanel()">Close</button>
+</div>
+</div>
+<!-- Global Ranking / Leaderboard -->
+<div id="ranking-modal" class="hidden modal-overlay">
+<div class="modal-box ranking-box">
+<h3 class="section-title">🏆 Global Ranking</h3>
+<div id="ranking-content"></div>
+<button class="btn-link" onclick="closeRanking()">Close</button>
 </div>
 </div>
 </div>
@@ -88,6 +105,7 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
 </div>
 <div id="ui-actions"></div>
 <div id="ui-log"><div id="log-messages"></div></div>
+<div id="presence-box" class="hidden"></div>
 <div id="panel-right" class="hidden"></div>
 </div>
 </div>
@@ -341,6 +359,60 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
   padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 6px;
 }
 .stat-add-btn:hover { box-shadow: 0 0 8px rgba(255,215,0,0.5); }
+
+/* ===== ITEM IMAGES (loaded from external MU asset repo, falls back to text offline) ===== */
+.item-img {
+  width: 32px; height: 32px; object-fit: contain; image-rendering: pixelated;
+  background: rgba(0,0,0,0.3); border: 1px solid #2a2040; border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ===== PRESENCE LIST (Players Here) ===== */
+#presence-box {
+  pointer-events: auto; position: absolute; top: 52px; left: 12px; width: 196px;
+  background: rgba(10,8,18,0.9); border: 1px solid rgba(139,105,20,0.4); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px;
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.5), 0 0 10px rgba(0,0,0,0.4);
+}
+#presence-box .pres-title {
+  color: #ffd700; font-family: 'MedievalSharp', serif; font-size: 13px; margin-bottom: 6px;
+  border-bottom: 1px solid rgba(139,105,20,0.3); padding-bottom: 4px;
+  text-shadow: 0 0 6px rgba(255,215,0,0.3);
+}
+#presence-box .pres-row { padding: 2px 0; color: #cfc6b4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#presence-box .pres-dot { display: inline-block; width: 8px; }
+
+/* ===== ADMIN PANEL & RANKING (shared modal sizing) ===== */
+.admin-box, .ranking-box { min-width: 660px; max-width: 92vw; max-height: 86vh; overflow-y: auto; text-align: left; }
+.admin-box::-webkit-scrollbar, .ranking-box::-webkit-scrollbar { width: 6px; }
+.admin-box::-webkit-scrollbar-track, .ranking-box::-webkit-scrollbar-track { background: #0a0812; }
+.admin-box::-webkit-scrollbar-thumb, .ranking-box::-webkit-scrollbar-thumb { background: #3a2a0a; border-radius: 3px; }
+.admin-acct {
+  background: rgba(15,12,25,0.85); border: 1px solid #2a2040; border-radius: 6px;
+  padding: 12px 14px; margin: 10px 0;
+}
+.admin-acct.is-admin { border-color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+.admin-acct.is-gm { border-color: #4488ff; }
+.admin-acct.is-banned { border-color: #aa3333; }
+.admin-acct-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-uname { color: #ffd700; font-weight: bold; font-size: 15px; }
+.role-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.role-admin { background: #5a4500; color: #ffd700; border: 1px solid #ffd700; }
+.role-gm { background: #10355a; color: #88bbff; border: 1px solid #4488ff; }
+.role-player { background: #1c1c28; color: #aaa; border: 1px solid #444; }
+.ban-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: #3a1010; color: #ff8888; border: 1px solid #aa4444; }
+.admin-select { background: #0a0812; color: #e0d8c8; border: 1px solid #2a2040; border-radius: 4px; padding: 3px 6px; font-family: 'MedievalSharp', serif; }
+.admin-char { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; margin: 5px 0; background: rgba(10,8,16,0.7); border: 1px solid #221c33; border-radius: 5px; font-size: 12px; }
+.admin-itemids { font-size: 10px; color: #8b7355; max-height: 56px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px; margin-bottom: 12px; line-height: 1.6; }
+.admin-note { color: #6b5b3a; font-size: 11px; margin: 4px 0 10px; font-style: italic; }
+
+/* ===== RANKING TABLE ===== */
+.rank-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rank-table th { color: #ffd700; text-align: left; padding: 8px 10px; border-bottom: 2px solid rgba(139,105,20,0.4); font-weight: normal; letter-spacing: 1px; }
+.rank-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #e0d8c8; }
+.rank-table tr.rank-top td { background: rgba(255,215,0,0.06); }
+.rank-table tr.rank-top td:first-child { font-size: 16px; }
+.rank-table tr.rank-me td { box-shadow: inset 3px 0 0 #88ff88; }
 </style>
 
 
@@ -565,6 +637,42 @@ function itemColor(inst){
   if ((inst.plus||0) >= 7 || (inst.addOpt||0) >= 16) return '#ffd700'; // high upgrade -> gold
   return '#cccccc';
 }
+
+// ===== ITEM ICONS =====
+// Real MU Online item icons are hot-linked from a public asset repo using MU's standard
+// item group/index numbering (imgs/items/{group}/{index}.gif). When the player is offline
+// (e.g. opened the HTML by double-click with no internet) the <img> simply fails to load
+// and is hidden via onerror, so the game keeps working with its text/colour cards.
+// Source: https://github.com/r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons (imgs/items)
+const ITEM_IMG_BASE = 'https://raw.githubusercontent.com/r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons/master/imgs/items/';
+const ITEM_IMG = {
+  // Swords (group 0)
+  short_sword:'0/1', kris:'0/0', rapier:'0/2', blade:'0/5',
+  // Staffs (group 5)
+  skull_staff:'5/0', angelic_staff:'5/1', serpent_staff:'5/2',
+  // Bows (group 4)
+  short_bow:'4/0', bow:'4/1', elven_bow:'4/2',
+  // Armor (group 8)
+  leather_armor:'8/5', scale_armor:'8/6', brass_armor:'8/8', pad_armor:'8/2',
+  bone_armor:'8/4', vine_armor:'8/10', silk_armor:'8/11',
+  // Shields (group 6)
+  small_shield:'6/0', buckler:'6/4',
+  // Helmets (group 7)
+  leather_helm:'7/5', scale_helm:'7/6',
+  // Boots (group 11)
+  leather_boots:'11/5', scale_boots:'11/6',
+  // Potions & jewels (group 14)
+  small_hp_potion:'14/1', medium_hp_potion:'14/2', large_hp_potion:'14/3',
+  small_mp_potion:'14/4', medium_mp_potion:'14/5',
+  jewel_of_bless:'14/13', jewel_of_soul:'14/14'
+};
+function itemImgUrl(itemId){ return ITEM_IMG[itemId] ? (ITEM_IMG_BASE + ITEM_IMG[itemId] + '.gif') : null; }
+// Returns an <img> tag (with offline fallback) or '' when no mapping exists.
+function itemIconHtml(itemId){
+  const url = itemImgUrl(itemId);
+  if (!url) return '';
+  return `<img class="item-img" src="${url}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+}
 </script>
 
 
@@ -581,6 +689,39 @@ function getChars() { return Store.get('characters') || []; }
 function saveChars(c) { Store.set('characters', c); }
 function getInv(charId) { return Store.get('inv_'+charId) || []; }
 function saveInv(charId, inv) { Store.set('inv_'+charId, inv); }
+
+// ===== ACCOUNT ROLES / PERMISSIONS =====
+// Accounts are {username, password, role, banned}. role: 'admin' | 'gm' | 'player'.
+function getAccountByName(name) { return getAccounts().find(a => a && a.username === name) || null; }
+function currentAccount() { return currentUser ? getAccountByName(currentUser) : null; }
+function isAdmin() { const a = currentAccount(); return !!(a && a.role === 'admin'); }
+function isGM() { const a = currentAccount(); return !!(a && (a.role === 'admin' || a.role === 'gm')); }
+// An admin can manage everyone; a GM can manage players only.
+function canManageAccount(target) {
+  if (!target) return false;
+  if (isAdmin()) return true;
+  if (isGM()) return target.role === 'player';
+  return false;
+}
+
+// Migrate legacy accounts ({username,password}) so they gain role + banned fields.
+// Runs once at startup; guarantees at least one admin exists.
+function migrateAccounts() {
+  const accounts = getAccounts();
+  if (!accounts.length) return;
+  let changed = false;
+  accounts.forEach(a => {
+    if (!a) return;
+    if (a.role === undefined) { a.role = 'player'; changed = true; }
+    if (a.banned === undefined) { a.banned = false; changed = true; }
+  });
+  if (!accounts.some(a => a && a.role === 'admin')) {
+    const named = accounts.find(a => a && a.username && a.username.toLowerCase() === 'admin');
+    const target = named || accounts[0];
+    if (target) { target.role = 'admin'; changed = true; }
+  }
+  if (changed) saveAccounts(accounts);
+}
 
 // ===== AUTH =====
 let currentUser = null;
@@ -610,7 +751,9 @@ function doRegister(e) {
   if (p.length < 4) return showErr('Password must be 4+ chars');
   const accounts = getAccounts();
   if (accounts.find(a => a.username === u)) return showErr('Username already exists');
-  accounts.push({ username: u, password: p });
+  // First account ever, or the reserved name 'admin', becomes an admin; everyone else a player.
+  const role = (u.toLowerCase() === 'admin' || accounts.length === 0) ? 'admin' : 'player';
+  accounts.push({ username: u, password: p, role, banned: false });
   saveAccounts(accounts);
   currentUser = u;
   Store.set('session', u);
@@ -623,6 +766,7 @@ function doLogin(e) {
   const accounts = getAccounts();
   const acc = accounts.find(a => a.username === u && a.password === p);
   if (!acc) return showErr('Invalid credentials');
+  if (acc.banned) return showErr('This account is banned.');
   currentUser = u;
   Store.set('session', u);
   loadCharSelect();
@@ -636,13 +780,28 @@ function showErr(msg) { document.getElementById('auth-error').textContent = msg;
 // ===== CHARACTER SELECT =====
 function loadCharSelect() {
   showScreen('screen-charselect');
+  renderCharacterList();
+  renderCharselActions();
+  document.getElementById('class-select').innerHTML = Object.entries(CLASS_DATA).map(([k,v]) => `
+    <div class="cls-opt" data-cls="${k}" onclick="selectClass('${k}')">
+      <div style="width:44px;height:44px;margin:0 auto 8px;border-radius:50%;background:${v.color};box-shadow:0 0 12px ${v.color};"></div>
+      <span style="color:#ffd700;font-size:13px;display:block;">${v.name}</span>
+      <small style="color:#6b5b3a;font-size:11px;">${v.desc}</small>
+    </div>
+  `).join('');
+  selectClass('dark_knight');
+}
+
+// Render only the current user's character cards (split out so admin actions can refresh it).
+function renderCharacterList() {
   const chars = getChars().filter(c => c.owner === currentUser);
   const el = document.getElementById('character-list');
+  if (!el) return;
   if (!chars.length) {
     el.innerHTML = '<p style="color:#6b5b3a;margin:20px;font-size:14px;">No characters yet. Create one!</p>';
   } else {
     el.innerHTML = chars.map(c => {
-      const cd = CLASS_DATA[c.cls];
+      const cd = CLASS_DATA[c.cls] || {name:c.cls, color:'#ccc'};
       return `<div class="char-card" onclick="enterGame('${c.id}')">
         <div class="char-icon" style="background:${cd.color};color:${cd.color};"></div>
         <div style="color:#ffd700;font-weight:bold;font-size:15px;">${c.name}</div>
@@ -652,14 +811,15 @@ function loadCharSelect() {
       </div>`;
     }).join('');
   }
-  document.getElementById('class-select').innerHTML = Object.entries(CLASS_DATA).map(([k,v]) => `
-    <div class="cls-opt" data-cls="${k}" onclick="selectClass('${k}')">
-      <div style="width:44px;height:44px;margin:0 auto 8px;border-radius:50%;background:${v.color};box-shadow:0 0 12px ${v.color};"></div>
-      <span style="color:#ffd700;font-size:13px;display:block;">${v.name}</span>
-      <small style="color:#6b5b3a;font-size:11px;">${v.desc}</small>
-    </div>
-  `).join('');
-  selectClass('dark_knight');
+}
+
+// Ranking is visible to everyone; the Admin Panel button only shows for GM/Admin.
+function renderCharselActions() {
+  const el = document.getElementById('charsel-actions');
+  if (!el) return;
+  let html = `<button class="btn-secondary" onclick="openRanking()">🏆 Ranking</button>`;
+  if (isGM()) html += `<button class="btn-secondary" onclick="openAdminPanel()">🛡️ Admin Panel</button>`;
+  el.innerHTML = html;
 }
 
 let selectedClass = 'dark_knight';
@@ -798,7 +958,7 @@ function animateCharsel() {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bot:null, botCd:0 };
+let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bot:null, botCd:0, ghosts:[] };
 let canvas, ctx;
 
 // Recompute derived combat stats from char + equipped items
@@ -810,6 +970,7 @@ function enterGame(charId) {
   if (!G.char) return;
   G.inv = getInv(charId);
   recompute();
+  G.bot = null; G.ghosts = [];
   loadMap(G.char.mapId);
   showScreen('screen-game');
   canvas = document.getElementById('game-canvas');
@@ -842,7 +1003,53 @@ function loadMap(mapId) {
     }
   });
   G.target = null; G.moveTo = null;
+  gatherGhosts(mapId);
   spawnBot();
+  updatePresence();
+}
+
+// ===== IN-WORLD PRESENCE (client-side multiplayer-style simulation) =====
+// NOTE: This game has no server. "Other players" are simply the OTHER characters
+// saved in THIS browser's localStorage. We surface any of them that are standing on
+// the current map as non-interactive "ghost" players. They cannot be attacked, do not
+// collide, and there is no PVP -- it is purely a cosmetic, presence-only illusion.
+function gatherGhosts(mapId) {
+  G.ghosts = [];
+  if (!G.char) return;
+  const others = getChars().filter(c => c && c.id !== G.char.id && (c.mapId || 'lorencia') === mapId);
+  others.forEach(o => {
+    const cd = CLASS_DATA[o.cls];
+    if (!cd) return;
+    G.ghosts.push({
+      name: o.name,
+      cls: o.cls,
+      px: (typeof o.px === 'number') ? o.px : 130,
+      py: (typeof o.py === 'number') ? o.py : 130,
+      level: o.level || 1,
+      bobPhase: Math.random() * Math.PI * 2
+    });
+  });
+}
+
+// Lightweight "Players Here" presence list shown in the corner of the game UI.
+function updatePresence() {
+  const box = document.getElementById('presence-box');
+  if (!box || !G.char) return;
+  const ghosts = G.ghosts || [];
+  const myCol = (CLASS_DATA[G.char.cls] || {}).color || '#ffd700';
+  const count = 1 + ghosts.length + (G.bot ? 1 : 0);
+  let html = `<div class="pres-title">Players Here (${count})</div>`;
+  html += `<div class="pres-row"><span class="pres-dot" style="color:${myCol};">●</span> ${G.char.name} <span style="color:#88ff88;">(you)</span></div>`;
+  if (G.bot) {
+    const bc = (CLASS_DATA[G.bot.cls] || {}).color || '#33d6c0';
+    html += `<div class="pres-row"><span class="pres-dot" style="color:${bc};">●</span> ${G.bot.name}</div>`;
+  }
+  ghosts.forEach(g => {
+    const col = (CLASS_DATA[g.cls] || {}).color || '#ccc';
+    html += `<div class="pres-row"><span class="pres-dot" style="color:${col};">●</span> ${g.name} <span style="color:#667;">[offline]</span></div>`;
+  });
+  box.innerHTML = html;
+  box.classList.remove('hidden');
 }
 
 // Random spawn position within map bounds, avoiding the safe zone
@@ -860,10 +1067,25 @@ function randSpawnPos(map){
   return { x, y };
 }
 
-// Allied bot companion spawns next to the player
+// Allied companion. Presented to the player as ANOTHER player (random name + class)
+// to make the world feel populated -- it is still a client-side allied bot that is
+// invulnerable and never participates in PVP. Identity persists across maps within a
+// session (reset when a different character enters the game).
+const BOT_NAME_POOL = ['ShadowBlade','IronFist','Valkyrie','NightWolf','DragonSlayer','MysticArrow','BloodReaver','StormBringer','FrostMage','SoulHunter','DarkPhoenix','SilverFang','ThunderLord','GhostWalker','RuneMaster','EmberKnight','VoidSeeker','CrimsonEdge','ArcaneFury','WildHunter','GrimReaper','SteelHeart','MoonShadow','FlameWarden','AbyssWalker','LunarSaint','RavenClaw','ObsidianX','PhoenixRise','ZeroChaos'];
+function randomPlayerName(){ return BOT_NAME_POOL[Math.floor(Math.random()*BOT_NAME_POOL.length)] + (Math.floor(Math.random()*900)+10); }
+function randomBotClass(){ const k = Object.keys(CLASS_DATA); return k[Math.floor(Math.random()*k.length)]; }
+function classWeapon(cls){ return cls === 'dark_wizard' ? 'staff' : cls === 'fairy_elf' ? 'bow' : 'sword'; }
+
 function spawnBot(){
   const c = G.char;
-  G.bot = { x: c.px - 12, y: c.py + 6, cd: 0, hue: 195 };
+  const prev = G.bot;
+  G.bot = {
+    x: c.px - 12, y: c.py + 6, cd: 0,
+    name:  prev ? prev.name  : randomPlayerName(),
+    cls:   prev ? prev.cls   : randomBotClass(),
+    level: prev ? prev.level : Math.max(1, (c.level || 1) + (Math.floor(Math.random()*7) - 3)),
+    walkPhase: 0, moving: false, atkAnim: 0, facing: 1
+  };
   G.botCd = 0;
 }
 
@@ -1044,6 +1266,8 @@ function updateBot(dt){
   const b = G.bot, c = G.char;
   if (!b) return;
   if (G.botCd > 0) G.botCd -= dt;
+  if (b.atkAnim > 0) b.atkAnim -= dt;
+  const ox = b.x, oy = b.y;
   const fdx = c.px - b.x, fdy = c.py - b.y;
   const fdist = Math.sqrt(fdx*fdx + fdy*fdy) || 1;
   // find nearest alive monster to the bot
@@ -1052,12 +1276,18 @@ function updateBot(dt){
   if (near && nd < 55 && fdist < 90) {
     // close in on the target but stay tethered to the player
     if (nd > 16) { b.x += (near.x-b.x)/nd*2.0; b.y += (near.y-b.y)/nd*2.0; }
-    if (G.botCd <= 0) { botAttack(near); G.botCd = 1300; }
+    b.facing = (near.x >= b.x) ? 1 : -1;
+    if (G.botCd <= 0) { botAttack(near); G.botCd = 1300; b.atkAnim = 320; }
   } else if (fdist > 16) {
     b.x += fdx/fdist*2.2; b.y += fdy/fdist*2.2;
+    b.facing = (fdx >= 0) ? 1 : -1;
   }
   // never stray too far from the player
   if (fdist > 70) { b.x += fdx/fdist*4; b.y += fdy/fdist*4; }
+  // animation bookkeeping: are we walking this frame, and advance the walk cycle
+  const moved = Math.hypot(b.x - ox, b.y - oy);
+  b.moving = moved > 0.15;
+  b.walkPhase = (b.walkPhase || 0) + (b.moving ? moved * 0.6 : 0);
 }
 function botAttack(m){
   const c = G.char;
@@ -1125,6 +1355,8 @@ function render() {
   map.npcs.forEach(n => drawNPC(n, cam));
   // Monsters
   G.mobs.forEach(m => { if (m.alive) drawMonster(m, cam); });
+  // Other players present on this map (client-side ghosts: non-interactive, no PVP)
+  if (G.ghosts && G.ghosts.length) G.ghosts.forEach(g => drawGhost(g, cam));
   // Bot companion (allied helper)
   if (G.bot) drawBot(G.bot, cam);
   // Death effects
@@ -1607,28 +1839,124 @@ function drawWeapon(c, px, py){
   }
 }
 
-// Allied bot companion: small figure with a BOT label
+// Shared humanoid drawer used for the companion ("fake player") and ghost players.
+// Mirrors drawPlayer's proportions so they are visually indistinguishable from the
+// real player, and adds optional walk + attack animation and transparency.
+//   opts: { alpha, moving, phase (walk cycle), bobSeed (idle phase), atk (0..1),
+//           weapon ('sword'|'staff'|'bow'), nameColor, tag, tagColor }
+function drawHumanoid(px, py, color, name, level, opts){
+  opts = opts || {};
+  const alpha = (opts.alpha == null) ? 1 : opts.alpha;
+  const moving = !!opts.moving;
+  const walk = opts.phase || 0;
+  const idleT = (G.portalAnim || 0) + (opts.bobSeed || 0);
+  const atk = Math.max(0, Math.min(1, opts.atk || 0));
+  // walking lifts the body and swings the legs apart; idle is a gentle hover bob
+  const bob = moving ? -Math.abs(Math.sin(walk*0.3))*2.2 : Math.sin(idleT*1.2)*0.8;
+  const legSwing = moving ? Math.sin(walk*0.3)*2.6 : 0;
+  const y = py + bob;
+  // Shadow (stays on the ground, not affected by bob)
+  ctx.globalAlpha = alpha*0.3; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(px, py+14, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = alpha;
+  // Legs (animated)
+  ctx.fillStyle = darken(color, 0.5);
+  ctx.fillRect(px-5 - legSwing, y+4, 4, 10);
+  ctx.fillRect(px+1 + legSwing, y+4, 4, 10);
+  // Torso
+  ctx.fillStyle = color;
+  ctx.fillRect(px-6, y-6, 12, 12);
+  // Arms (right arm lifts during an attack swing)
+  ctx.fillRect(px-9, y-4, 3, 9);
+  ctx.fillRect(px+6, y-4 - atk*5, 3, 9);
+  // Weapon in hand
+  drawSimpleWeapon(px, y, opts.weapon || 'sword', atk);
+  // Head
+  ctx.fillStyle = '#ddbba0';
+  ctx.beginPath(); ctx.arc(px, y-10, 5, 0, Math.PI*2); ctx.fill();
+  // Helmet hint
+  ctx.fillStyle = darken(color, 0.3);
+  ctx.beginPath(); ctx.arc(px, y-10, 5, Math.PI, Math.PI*2); ctx.fill();
+  // Class glow
+  ctx.globalAlpha = alpha*0.25; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(px, y, 18, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = alpha;
+  // Attack slash arc
+  if (atk > 0) {
+    ctx.globalAlpha = alpha*(1-atk)*0.9; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(px+9, y-2, 14, -1.0 + atk*1.6, 0.3 + atk*1.6); ctx.stroke();
+    ctx.globalAlpha = alpha;
+  }
+  // Name
+  ctx.fillStyle = opts.nameColor || '#ffd700'; ctx.font = 'bold 11px MedievalSharp'; ctx.textAlign = 'center';
+  ctx.fillText(name, px, y-22);
+  // Optional small tag under the name (e.g. "[offline]")
+  if (opts.tag) {
+    ctx.fillStyle = opts.tagColor || '#8899aa'; ctx.font = '8px MedievalSharp';
+    ctx.fillText(opts.tag, px, y-13);
+  }
+  // Level badge
+  ctx.fillStyle = 'rgba(0,0,0,'+(0.6*alpha)+')'; ctx.beginPath(); ctx.arc(px+12, y-16, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px sans-serif'; ctx.fillText(level, px+12, y-13);
+  ctx.globalAlpha = 1;
+}
+
+// Small in-hand weapon sprite for humanoids (does NOT touch globalAlpha so it inherits
+// the caller's transparency). The sword swings during an attack.
+function drawSimpleWeapon(px, py, type, atk){
+  if (type === 'staff') {
+    ctx.strokeStyle = '#9b7340'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px+8, py-12); ctx.lineTo(px+8, py+10); ctx.stroke();
+    ctx.fillStyle = '#66ccff';
+    ctx.beginPath(); ctx.arc(px+8, py-14, 3.5, 0, Math.PI*2); ctx.fill();
+  } else if (type === 'bow') {
+    ctx.strokeStyle = '#a0703a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px+9, py-1, 11, -Math.PI*0.5, Math.PI*0.5); ctx.stroke();
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px+9, py-12); ctx.lineTo(px+9, py+10); ctx.stroke();
+  } else {
+    ctx.save();
+    ctx.translate(px+7, py+2);
+    ctx.rotate(-(atk||0)*0.9); // swing up while attacking
+    ctx.strokeStyle = '#d8d8e8'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 2); ctx.lineTo(7, -16); ctx.stroke();
+    ctx.strokeStyle = '#8a6a2a'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-2, 1); ctx.lineTo(4, -1); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// Allied companion drawn as a fully-fledged (fake) player: random name on the head,
+// class-coloured body, walking + attacking animation.
 function drawBot(b, cam){
   const bx = b.x*4-cam.x, by = b.y*4-cam.y;
-  // shadow
-  ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.ellipse(bx, by+10, 7, 3, 0, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
-  const col = '#33d6c0';
-  // legs
-  ctx.fillStyle = '#1c7a70'; ctx.fillRect(bx-3, by+3, 3, 7); ctx.fillRect(bx+1, by+3, 3, 7);
-  // torso (smaller than player)
-  ctx.fillStyle = col; ctx.fillRect(bx-4, by-4, 8, 9);
-  // arms
-  ctx.fillRect(bx-6, by-3, 2, 7); ctx.fillRect(bx+4, by-3, 2, 7);
-  // head
-  ctx.fillStyle = '#bfe9e2'; ctx.beginPath(); ctx.arc(bx, by-8, 4, 0, Math.PI*2); ctx.fill();
-  // friendly glow
-  ctx.globalAlpha = 0.2; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(bx, by-1, 13, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
-  // label
-  ctx.fillStyle = '#7fffe6'; ctx.font = 'bold 9px MedievalSharp'; ctx.textAlign = 'center';
-  ctx.fillText('BOT', bx, by-15);
+  const cd = CLASS_DATA[b.cls] || { color:'#33d6c0' };
+  const atk = b.atkAnim > 0 ? Math.sin((1 - b.atkAnim/320) * Math.PI) : 0;
+  drawHumanoid(bx, by, cd.color, b.name, b.level, {
+    alpha: 1,
+    moving: b.moving,
+    phase: b.walkPhase || 0,
+    atk: atk,
+    weapon: classWeapon(b.cls),
+    nameColor: '#ffd700'
+  });
+}
+
+// Ghost player: another local character standing on this map. Semi-transparent,
+// gentle idle bob, "[offline]" tag, never attackable, no collision, no PVP.
+function drawGhost(g, cam){
+  const gx = g.px*4-cam.x, gy = g.py*4-cam.y;
+  if (gx < -60 || gx > canvas.width+60 || gy < -60 || gy > canvas.height+60) return;
+  const cd = CLASS_DATA[g.cls] || { color:'#8899aa' };
+  drawHumanoid(gx, gy, cd.color, g.name, g.level, {
+    alpha: 0.45,
+    moving: false,
+    bobSeed: g.bobPhase,
+    weapon: classWeapon(g.cls),
+    nameColor: '#bcd2ff',
+    tag: '[offline]',
+    tagColor: '#7d8aa0'
+  });
 }
 
 // Safe-zone landmark tower with a waving flag
@@ -1779,7 +2107,7 @@ function renderInventory() {
   html += '<div style="color:#8b7355;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Equipped</div>';
   if (!equipped.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Nothing equipped</div>';
   equipped.forEach(i => { const it = ITEMS[i.itemId]; if (!it) return; const r = getItemRarity(it);
-    html += `<div class="item-card equipped rarity-${r}"><span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span> <small style="color:#6b5b3a;">(${it.slot||''})</small><br><small style="color:#7a8a6a;">${itemStatsLine(i)}</small></span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
+    html += `<div class="item-card equipped rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span> <small style="color:#6b5b3a;">(${it.slot||''})</small><br><small style="color:#7a8a6a;">${itemStatsLine(i)}</small></span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
   });
   html += '<div style="color:#8b7355;font-size:12px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">Bag</div>';
   if (!bag.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Empty</div>';
@@ -1787,7 +2115,7 @@ function renderInventory() {
     if (it.slot) btns += `<button class="item-btn" onclick="equipItem('${i.uid}')">Equip</button>`;
     if (it.type==='consumable') btns += `<button class="item-btn use" onclick="useItem('${i.uid}')">Use</button>`;
     btns += `<button class="item-btn sell" onclick="sellItem('${i.uid}')">Sell</button>`;
-    html += `<div class="item-card rarity-${r}"><span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span><br><small style="color:#6b5b3a;">${itemStatsLine(i)||it.desc||''}</small></span><div style="display:flex;gap:4px;">${btns}</div></div>`;
+    html += `<div class="item-card rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span><br><small style="color:#6b5b3a;">${itemStatsLine(i)||it.desc||''}</small></span><div style="display:flex;gap:4px;">${btns}</div></div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
@@ -1908,6 +2236,216 @@ function sellItem(uid) {
 
 
 <script>
+// ===== ADMIN PANEL =====
+function openAdminPanel(){
+  if (!isGM()) { alert('Admins and GMs only.'); return; }
+  renderAdminPanel();
+  document.getElementById('admin-modal').classList.remove('hidden');
+}
+function closeAdminPanel(){ document.getElementById('admin-modal').classList.add('hidden'); }
+
+// Re-render the admin panel plus the character-select list/buttons after any change.
+function adminRefresh(){ renderAdminPanel(); renderCharacterList(); renderCharselActions(); }
+
+function renderAdminPanel(){
+  const accounts = getAccounts();
+  const chars = getChars();
+  const escAttr = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  let html = `<div class="admin-itemids"><b style="color:#8b7355;">Valid item IDs:</b> ${Object.keys(ITEMS).join(', ')}</div>`;
+  html += `<div class="admin-note">You are signed in as <b style="color:#ffd700;">${currentUser}</b> (${(currentAccount()||{}).role||'?'}). Admins manage everyone; GMs manage players only.</div>`;
+  if (!accounts.length) { html += '<p style="color:#6b5b3a;">No accounts found.</p>'; }
+  accounts.forEach(a => {
+    const role = a.role || 'player';
+    const banned = !!a.banned;
+    const manage = canManageAccount(a);
+    const u = escAttr(a.username);
+    const cls = 'admin-acct' + (role==='admin'?' is-admin':role==='gm'?' is-gm':'') + (banned?' is-banned':'');
+    const roleOpts = ['player','gm','admin'].map(r => {
+      if (r === 'admin' && !isAdmin()) return ''; // only admins may assign the admin role
+      return `<option value="${r}"${r===role?' selected':''}>${r}</option>`;
+    }).join('');
+    html += `<div class="${cls}">
+      <div class="admin-acct-head">
+        <span class="admin-uname">${a.username}</span>
+        <span class="role-badge role-${role}">${role}</span>
+        ${banned?'<span class="ban-badge">BANNED</span>':''}
+        ${a.username===currentUser?'<span style="color:#88ff88;font-size:11px;">(you)</span>':''}
+        <span style="flex:1;"></span>`;
+    if (manage) {
+      html += `<label style="font-size:11px;color:#8b7355;">Role
+          <select class="admin-select" onchange="adminSetRole('${u}', this.value)">${roleOpts}</select></label>
+        <button class="item-btn" onclick="adminToggleBan('${u}')">${banned?'Unban':'Ban'}</button>
+        <button class="item-btn sell" onclick="adminDeleteAccount('${u}')">Delete</button>`;
+    } else {
+      html += `<span style="font-size:11px;color:#6b5b3a;">No permission</span>`;
+    }
+    html += `</div>`;
+    const owned = chars.filter(c => c.owner === a.username);
+    if (owned.length) {
+      owned.forEach(c => {
+        const cd = CLASS_DATA[c.cls] || { name:c.cls, color:'#ccc' };
+        html += `<div class="admin-char">
+          <span style="color:${cd.color};font-weight:bold;">${c.name}</span>
+          <span style="color:#8b7355;">${cd.name}</span>
+          <span style="color:#88ccff;">Lv.${c.level}</span>
+          <span style="color:#ffcc00;">${(c.zen||0).toLocaleString()} Zen</span>
+          <span style="flex:1;"></span>`;
+        if (manage) {
+          html += `<button class="item-btn" onclick="adminSetCharLevel('${c.id}')">Set Level</button>
+            <button class="item-btn" onclick="adminGrantZen('${c.id}')">Grant Zen</button>
+            <button class="item-btn" onclick="adminGrantItem('${c.id}')">Grant Item</button>`;
+        }
+        html += `</div>`;
+      });
+    } else {
+      html += `<div class="admin-char" style="color:#4a4030;font-style:italic;">No characters</div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById('admin-content').innerHTML = html;
+}
+
+function adminSetRole(username, role){
+  const accounts = getAccounts();
+  const t = accounts.find(a => a.username === username);
+  if (!t) return;
+  if (!canManageAccount(t)) { alert('You do not have permission to manage this account.'); return; }
+  if (role === 'admin' && !isAdmin()) { alert('Only admins can grant the admin role.'); renderAdminPanel(); return; }
+  if (t.role === 'admin' && !isAdmin()) { alert("Only admins can change an admin's role."); renderAdminPanel(); return; }
+  t.role = role;
+  if (role === 'admin') t.banned = false;
+  saveAccounts(accounts);
+  adminRefresh();
+}
+
+function adminToggleBan(username){
+  const accounts = getAccounts();
+  const t = accounts.find(a => a.username === username);
+  if (!t) return;
+  if (!canManageAccount(t)) { alert('No permission.'); return; }
+  if (t.role === 'admin' && !isAdmin()) { alert('Only admins can ban an admin account.'); return; }
+  if (username === currentUser && !t.banned) { alert('You cannot ban your own account.'); return; }
+  t.banned = !t.banned;
+  saveAccounts(accounts);
+  adminRefresh();
+}
+
+function adminDeleteAccount(username){
+  const accounts = getAccounts();
+  const t = accounts.find(a => a.username === username);
+  if (!t) return;
+  if (!canManageAccount(t)) { alert('No permission.'); return; }
+  if (t.role === 'admin' && !isAdmin()) { alert('Only admins can delete an admin account.'); return; }
+  if (username === currentUser) { alert('You cannot delete your own account.'); return; }
+  if (!confirm('Delete account "'+username+'" and ALL of its characters? This cannot be undone.')) return;
+  // Remove the account, its characters, and each character's inventory.
+  const chars = getChars();
+  chars.filter(c => c.owner === username).forEach(c => Store.del('inv_'+c.id));
+  saveChars(chars.filter(c => c.owner !== username));
+  saveAccounts(accounts.filter(a => a.username !== username));
+  adminRefresh();
+}
+
+// Locate a stored character + permission-check its owner before granting.
+function adminFindManageableChar(charId){
+  const chars = getChars();
+  const ch = chars.find(c => c.id === charId);
+  if (!ch) return null;
+  const owner = getAccountByName(ch.owner);
+  if (!canManageAccount(owner)) { alert('No permission to modify this account.'); return null; }
+  return { chars, ch };
+}
+
+function adminSetCharLevel(charId){
+  const found = adminFindManageableChar(charId); if (!found) return;
+  const { chars, ch } = found;
+  const raw = prompt('Set level for '+ch.name+' (1-400):', ch.level);
+  if (raw === null) return;
+  let lvl = parseInt(raw, 10);
+  if (isNaN(lvl)) { alert('Please enter a valid number.'); return; }
+  lvl = Math.max(1, Math.min(400, lvl));
+  const cd = CLASS_DATA[ch.cls] || {};
+  const old = ch.level;
+  ch.level = lvl;
+  // Recompute max HP/MP from the class formula (base + per-level + attribute bonuses).
+  ch.maxHp = Math.round((cd.baseHp||100) + (cd.hpPerLevel||0)*(lvl-1) + ((ch.vit||0)-(cd.baseVit||0))*(cd.hpPerVit||0));
+  ch.maxMp = Math.round((cd.baseMp||0)  + (cd.mpPerLevel||0)*(lvl-1) + ((ch.ene||0)-(cd.baseEne||0))*(cd.mpPerEne||0));
+  ch.maxHp = Math.max(1, ch.maxHp); ch.maxMp = Math.max(0, ch.maxMp);
+  ch.hp = ch.maxHp; ch.mp = ch.maxMp;
+  if (lvl > old) ch.statPts = (ch.statPts||0) + (lvl - old)*5;
+  ch.exp = 0;
+  saveChars(chars);
+  adminRefresh();
+}
+
+function adminGrantZen(charId){
+  const found = adminFindManageableChar(charId); if (!found) return;
+  const { chars, ch } = found;
+  const raw = prompt('Grant Zen to '+ch.name+' (use a negative number to remove):', '100000');
+  if (raw === null) return;
+  const amt = parseInt(raw, 10);
+  if (isNaN(amt)) { alert('Please enter a valid number.'); return; }
+  ch.zen = Math.max(0, (ch.zen||0) + amt);
+  saveChars(chars);
+  adminRefresh();
+}
+
+function adminGrantItem(charId){
+  const found = adminFindManageableChar(charId); if (!found) return;
+  const { ch } = found;
+  const raw = prompt('Item ID to grant to '+ch.name+' (e.g. blade, scale_armor, large_hp_potion):', '');
+  if (raw === null) return;
+  const id = raw.trim();
+  if (!ITEMS[id]) { alert('Unknown item ID: "'+id+'".'); return; }
+  const inv = getInv(charId);
+  inv.push(makeInstance(id));
+  saveInv(charId, inv);
+  // If this character is currently being played, reflect the grant live.
+  if (G.char && G.char.id === charId) { G.inv = inv; recompute(); }
+  alert('Granted '+ITEMS[id].name+' to '+ch.name+'.');
+  adminRefresh();
+}
+
+// ===== GLOBAL RANKING / LEADERBOARD =====
+function openRanking(){
+  renderRanking();
+  document.getElementById('ranking-modal').classList.remove('hidden');
+}
+function closeRanking(){ document.getElementById('ranking-modal').classList.add('hidden'); }
+
+function renderRanking(){
+  // Gather ALL characters across every account, rank by level then exp.
+  const chars = getChars().slice().sort((a,b) => (b.level - a.level) || ((b.exp||0) - (a.exp||0)));
+  const top = chars.slice(0, 50);
+  let rows;
+  if (!top.length) {
+    rows = '<tr><td colspan="6" style="color:#6b5b3a;">No characters have been created yet.</td></tr>';
+  } else {
+    rows = top.map((c, i) => {
+      const cd = CLASS_DATA[c.cls] || { name:c.cls, color:'#ccc' };
+      const rankCell = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : ('#' + (i+1));
+      const mapName = (MAPS[c.mapId] && MAPS[c.mapId].name) || c.mapId || '—';
+      const mine = c.owner === currentUser;
+      const rowCls = (i < 3 ? 'rank-top' : '') + (mine ? ' rank-me' : '');
+      return `<tr class="${rowCls.trim()}">
+        <td>${rankCell}</td>
+        <td style="color:#ffd700;font-weight:bold;">${c.name}</td>
+        <td style="color:#8b7355;">${c.owner}</td>
+        <td style="color:${cd.color};">${cd.name}</td>
+        <td style="color:#88ccff;">${c.level}</td>
+        <td style="color:#88ff88;">${mapName}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('ranking-content').innerHTML =
+    `<table class="rank-table"><thead><tr>
+      <th>Rank</th><th>Character</th><th>Owner</th><th>Class</th><th>Lv</th><th>Map</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+</script>
+
+
+<script>
 // ===== SHOP =====
 function openShop(shopId, npcName) {
   const items = SHOPS[shopId];
@@ -1918,7 +2456,7 @@ function openShop(shopId, npcName) {
   let html = `<div class="panel-title">${npcName || 'Shop'} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>`;
   items.forEach(itemId => { const it = ITEMS[itemId]; const r = getItemRarity(it);
     html += `<div class="item-card rarity-${r}">
-      <span style="flex:1;">${it.name}<br><small style="color:#6b5b3a;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
+      ${itemIconHtml(itemId)}<span style="flex:1;">${it.name}<br><small style="color:#6b5b3a;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
       <button class="item-btn" onclick="buyItem('${itemId}')" style="border-color:#8b6914;color:#ffd700;">Buy</button>
     </div>`;
   });
@@ -1938,7 +2476,13 @@ function buyItem(itemId) {
 
 // ===== INIT =====
 (function() {
-  const session = Store.get('session');
+  migrateAccounts();
+  let session = Store.get('session');
+  // Don't auto-resume a session for a deleted or banned account.
+  if (session) {
+    const acc = getAccountByName(session);
+    if (!acc || acc.banned) { Store.del('session'); session = null; }
+  }
   if (session) { currentUser = session; loadCharSelect(); initCharselParticles(); }
   else { initAuthParticles(); }
   window.addEventListener('resize', () => {

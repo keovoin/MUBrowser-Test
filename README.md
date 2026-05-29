@@ -104,6 +104,38 @@ Download `docs/index.html` and double-click it. It opens in any browser and work
 - Persists between browser sessions
 - Each account has separate save data
 
+### Accounts, Roles & Admin Panel
+The client-side account system now supports **roles** and **moderation**:
+
+- Every account is `{ username, password, role, banned }` where `role` is one of `admin`, `gm`, or `player`.
+- **Automatic migration**: old saves created before this update (which only had `username`/`password`) are upgraded on first load — they get `role: "player"` and `banned: false`, and the game guarantees at least one admin exists (it promotes an account literally named `admin`, or else the very first account).
+- **Registration**: the first account ever created — or any account registered with the username `admin` — becomes an **admin**. Everyone else starts as a **player**.
+- **Banning**: a banned account cannot log in (it sees *"This account is banned."*), and a banned saved session is not auto-resumed.
+- **Admin Panel** (button on the character-select screen, visible only to admins/GMs): lists every account with its role, ban status and characters. From here you can:
+  - Change a role (player / gm / admin) via a dropdown.
+  - Ban / unban an account.
+  - Delete an account together with all of its characters and inventories.
+  - Grant to any character: **Set Level** (1–400, recalculates max HP/MP from the class formula), **Grant Zen**, and **Grant Item** (by item ID).
+  - Permission rules: **admins** manage everyone; **GMs** manage *players only* and can never assign or remove the admin role or delete admins.
+
+### Global Ranking / Leaderboard
+- A **Ranking** button on the character-select screen (visible to everyone) opens a dark-fantasy leaderboard.
+- It collects **all** characters across **all** local accounts, sorts by **level** (then **EXP**), and shows up to the **top 50**: rank, character name, owner, class (in the class colour), level and current map.
+- The top three are marked with 🥇 🥈 🥉 and a highlighted row; your own characters are subtly accented.
+
+### Other Players & Your Companion (client-side, no server)
+> **How the "multiplayer" feel works (honest explanation):** This game has **no server and no real networking**. The sense of a populated world is created entirely on your own machine:
+>
+> - **Ghost players** — any *other* characters you have saved in **this browser** that happen to be standing on the **same map** appear in the world as semi-transparent figures, drawn exactly like real players, with their name and a small `[offline]` tag. They are purely cosmetic: they **cannot be attacked, do not collide, and there is no PVP**.
+> - **Your companion** — the allied helper that follows you and fights monsters is now presented as **another player**: it is drawn with the **same character art as you**, shows a **random player-style name floating above its head** (instead of "BOT"), and now **animates** — it visibly **walks** (leg/step + body bob) when moving and plays a **sword-swing animation** when attacking, so it never looks frozen on screen. Under the hood it is still a client-side allied bot (invulnerable, no PVP); the player-style presentation simply makes the world feel busier and more alive.
+> - **"Players Here" panel** — a small presence list in the corner of the game UI shows everyone currently on your map: **you** (marked `(you)`), your companion, and any ghost players.
+
+### Item Images
+- Inventory and shop item cards now show **real MU Online item icons**.
+- Icons are loaded on demand from a public community asset repository using MU's standard item *group/index* numbering (`imgs/items/{group}/{index}.gif`).
+- **Offline-safe**: if there is no internet (for example when you opened the HTML by double-clicking it), the images simply fail to load and are hidden automatically — the game keeps working with its existing text/colour item cards. Nothing is bundled into the file, so it stays a single self-contained HTML page.
+- **Image credit:** item icons are sourced from the community project [r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons](https://github.com/r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons) (`imgs/items`). MU Online and its art assets are property of **Webzen**; assets are used here for non-commercial, illustrative purposes.
+
 ---
 
 ## 🎯 How to Play
