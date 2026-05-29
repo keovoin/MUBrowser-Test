@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0a">
+<meta name="screen-orientation" content="landscape">
 <title>MU Online - Browser Edition</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
-#game-canvas { display: block; touch-action: none; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; height: 100dvh; touch-action: manipulation; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+#game-canvas { display: block; touch-action: manipulation; }
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 .screen.active { display: flex; }
 .hidden { display: none !important; }
@@ -29,29 +31,52 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 .btn-secondary { padding: 10px 20px; background: #16213e; border: 1px solid #ffd700; color: #ffd700; cursor: pointer; border-radius: 4px; margin: 10px; }
 .btn-link { background: none; border: none; color: #888; cursor: pointer; margin: 10px; text-decoration: underline; }
 .error-msg { color: #ff4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
-/* ===== Mobile / responsive ===== */
-@media (max-width: 700px), (pointer: coarse) {
-  .game-title { font-size: 36px; letter-spacing: 2px; }
-  .auth-container { min-width: 0 !important; width: 92vw !important; max-width: 460px; padding: 22px !important; }
-  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; }
-  #create-modal > div { min-width: 0 !important; width: 92vw !important; max-width: 460px; }
-  /* HP/MP/EXP bars shrink to fit narrow screens */
-  #ui-bars { gap: 4px; width: 96vw; justify-content: center; bottom: 6px; }
-  #ui-bars > div { width: 30vw !important; min-width: 0 !important; }
-  /* Bigger, thumb-friendly action buttons */
-  #ui-actions { bottom: 64px; right: 8px; gap: 8px; }
-  #ui-actions button { width: 50px !important; height: 50px !important; font-size: 22px !important; }
-  /* Right-side panels become near-full-width sheets */
-  #panel-right { width: 94vw !important; max-width: 380px; right: 3vw !important; top: 46px !important; max-height: calc(100dvh - 130px) !important; }
-  /* Combat log smaller and out of the way of the buttons */
-  #ui-log { width: 58vw !important; max-height: 96px !important; bottom: 64px; font-size: 11px; }
-  #ui-topbar { gap: 10px !important; font-size: 11px !important; padding: 6px 10px !important; flex-wrap: wrap; }
+/* ===== Mobile / responsive — LANDSCAPE preferred ===== */
+/* Hint to hold phone sideways (works on Chrome/Edge Android) */
+@media (pointer: coarse) {
+  .game-title { font-size: 32px; letter-spacing: 2px; }
+  .auth-container { min-width: 0 !important; width: 90vw !important; max-width: 460px; padding: 20px !important; }
+  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; max-width: 520px; }
+  #create-modal > div { min-width: 0 !important; width: 88vw !important; max-width: 440px; padding: 18px !important; }
+  /* Right panel (inventory/stats/shop): responsive overlay */
+  #panel-right { width: 80vw !important; max-width: 340px; right: 2vw !important; top: 38px !important; max-height: calc(100dvh - 50px) !important; font-size: 12px !important; padding: 12px !important; }
+  /* HP/MP/EXP bars adapt */
+  #ui-bars { gap: 4px; }
+  #ui-bars > div { width: 26vw !important; min-width: 60px !important; height: 16px !important; }
+  /* Bigger touch targets for action buttons */
+  #ui-actions { gap: 6px; }
+  #ui-actions button { width: 44px !important; height: 44px !important; font-size: 20px !important; }
+  /* Combat log compact */
+  #ui-log { width: 50vw !important; max-height: 80px !important; font-size: 11px; }
+  #ui-topbar { gap: 8px !important; font-size: 11px !important; padding: 5px 8px !important; flex-wrap: wrap; }
+  /* Modals fit any orientation */
+  #item-modal-body { max-width: 92vw !important; max-height: 85dvh !important; padding: 14px !important; font-size: 13px; }
+  #transfer-modal > div { width: 90vw !important; max-width: 440px; max-height: 85dvh; overflow-y: auto; }
 }
-@media (max-width: 700px) and (orientation: landscape) {
-  #ui-actions { bottom: 8px; }
-  #ui-log { bottom: 8px; max-height: 70px !important; }
-  #ui-bars { bottom: 4px; }
+/* Landscape on narrow devices: tighten vertical space */
+@media (max-height: 500px) {
+  #ui-topbar { padding: 3px 8px !important; font-size: 10px !important; }
+  #ui-bars { bottom: 4px !important; }
+  #ui-bars > div { height: 14px !important; }
+  #ui-actions { bottom: 4px; }
+  #ui-actions button { width: 36px !important; height: 36px !important; font-size: 16px !important; }
+  #ui-log { max-height: 60px !important; bottom: 42px; }
+  #panel-right { top: 28px !important; max-height: calc(100dvh - 36px) !important; }
+  .auth-container { padding: 14px !important; }
+  .game-title { font-size: 26px; margin-bottom: 6px; }
+  .game-subtitle { margin-bottom: 10px !important; }
 }
+/* Portrait warning: suggest rotating */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+  body::after {
+    content: '🔄 Rotate to landscape for best experience';
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,215,0,0.12); color: #ffd700; font-size: 11px;
+    padding: 4px 12px; border-radius: 12px; z-index: 999; pointer-events: none;
+    animation: fadeHint 6s forwards;
+  }
+}
+@keyframes fadeHint { 0%,70%{opacity:1;} 100%{opacity:0;} }
 </style>
 </head>
 <body>
@@ -132,9 +157,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <div id="ui-log" style="pointer-events:auto;position:absolute;bottom:40px;left:10px;width:320px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.75);border-radius:4px;padding:6px;font-size:12px;">
 <div id="log-messages"></div>
 </div>
-<div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100vh - 100px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;"></div>
+<div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100dvh - 60px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;font-size:13px;"></div>
 <div id="item-modal" class="hidden" style="pointer-events:auto;position:absolute;inset:0;background:rgba(0,0,0,0.7);display:flex;z-index:200;" onclick="if(event.target===this)this.classList.add('hidden')">
-<div id="item-modal-body" style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:18px;min-width:240px;max-width:88vw;max-height:80vh;overflow:auto;"></div>
+<div id="item-modal-body" style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:18px;min-width:220px;max-width:90vw;max-height:85dvh;overflow-y:auto;"></div>
 </div>
 </div>
 </div>
@@ -476,15 +501,17 @@ function enterGame(charId) {
   G.inv = getInv(charId);
   loadMap(G.char.mapId);
   showScreen('screen-game');
+  // Attempt to lock to landscape on mobile (supported on Chrome Android + PWA)
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){}
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
   resizeCanvas();
   window.onresize = resizeCanvas;
   canvas.onclick = handleClick;
-  // Touch support for mobile: tap to move / attack (preventDefault stops scroll, zoom and the ghost click).
-  // Property assignment (not addEventListener) so re-entering the game doesn't stack duplicate handlers.
-  canvas.ontouchstart = (e) => { e.preventDefault(); handleClick(e); };
-  canvas.ontouchmove = (e) => { e.preventDefault(); };
+  // Touch: single-tap moves/attacks; pinch-zoom is allowed by the browser (touch-action: manipulation).
+  // We only handle single-finger taps and let the browser handle multi-finger pinch natively.
+  canvas.ontouchstart = (e) => { if (e.touches.length === 1) { e.preventDefault(); handleClick(e); } };
+  canvas.ontouchmove = (e) => { if (e.touches.length === 1) e.preventDefault(); /* let 2-finger zoom through */ };
   G.running = true;
   G.lastT = Date.now();
   G.tileVar = Array.from({length:256*256}, () => Math.random()*0.15-0.075);
