@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0a">
+<meta name="screen-orientation" content="landscape">
 <title>MU Online - Browser Edition</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
-#game-canvas { display: block; touch-action: none; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; width: 100vw; height: 100vh; height: 100dvh; touch-action: manipulation; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+#game-canvas { display: block; touch-action: manipulation; }
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 .screen.active { display: flex; }
 .hidden { display: none !important; }
@@ -29,29 +31,52 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 .btn-secondary { padding: 10px 20px; background: #16213e; border: 1px solid #ffd700; color: #ffd700; cursor: pointer; border-radius: 4px; margin: 10px; }
 .btn-link { background: none; border: none; color: #888; cursor: pointer; margin: 10px; text-decoration: underline; }
 .error-msg { color: #ff4444; font-size: 13px; margin-top: 8px; min-height: 18px; }
-/* ===== Mobile / responsive ===== */
-@media (max-width: 700px), (pointer: coarse) {
-  .game-title { font-size: 36px; letter-spacing: 2px; }
-  .auth-container { min-width: 0 !important; width: 92vw !important; max-width: 460px; padding: 22px !important; }
-  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; }
-  #create-modal > div { min-width: 0 !important; width: 92vw !important; max-width: 460px; }
-  /* HP/MP/EXP bars shrink to fit narrow screens */
-  #ui-bars { gap: 4px; width: 96vw; justify-content: center; bottom: 6px; }
-  #ui-bars > div { width: 30vw !important; min-width: 0 !important; }
-  /* Bigger, thumb-friendly action buttons */
-  #ui-actions { bottom: 64px; right: 8px; gap: 8px; }
-  #ui-actions button { width: 50px !important; height: 50px !important; font-size: 22px !important; }
-  /* Right-side panels become near-full-width sheets */
-  #panel-right { width: 94vw !important; max-width: 380px; right: 3vw !important; top: 46px !important; max-height: calc(100dvh - 130px) !important; }
-  /* Combat log smaller and out of the way of the buttons */
-  #ui-log { width: 58vw !important; max-height: 96px !important; bottom: 64px; font-size: 11px; }
-  #ui-topbar { gap: 10px !important; font-size: 11px !important; padding: 6px 10px !important; flex-wrap: wrap; }
+/* ===== Mobile / responsive — LANDSCAPE preferred ===== */
+/* Hint to hold phone sideways (works on Chrome/Edge Android) */
+@media (pointer: coarse) {
+  .game-title { font-size: 32px; letter-spacing: 2px; }
+  .auth-container { min-width: 0 !important; width: 90vw !important; max-width: 460px; padding: 20px !important; }
+  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; max-width: 520px; }
+  #create-modal > div { min-width: 0 !important; width: 88vw !important; max-width: 440px; padding: 18px !important; }
+  /* Right panel (inventory/stats/shop): responsive overlay */
+  #panel-right { width: 80vw !important; max-width: 340px; right: 2vw !important; top: 38px !important; max-height: calc(100dvh - 50px) !important; font-size: 12px !important; padding: 12px !important; }
+  /* HP/MP/EXP bars adapt */
+  #ui-bars { gap: 4px; }
+  #ui-bars > div { width: 26vw !important; min-width: 60px !important; height: 16px !important; }
+  /* Bigger touch targets for action buttons */
+  #ui-actions { gap: 6px; }
+  #ui-actions button { width: 44px !important; height: 44px !important; font-size: 20px !important; }
+  /* Combat log compact */
+  #ui-log { width: 50vw !important; max-height: 80px !important; font-size: 11px; }
+  #ui-topbar { gap: 8px !important; font-size: 11px !important; padding: 5px 8px !important; flex-wrap: wrap; }
+  /* Modals fit any orientation */
+  #item-modal-body { max-width: 92vw !important; max-height: 85dvh !important; padding: 14px !important; font-size: 13px; }
+  #transfer-modal > div { width: 90vw !important; max-width: 440px; max-height: 85dvh; overflow-y: auto; }
 }
-@media (max-width: 700px) and (orientation: landscape) {
-  #ui-actions { bottom: 8px; }
-  #ui-log { bottom: 8px; max-height: 70px !important; }
-  #ui-bars { bottom: 4px; }
+/* Landscape on narrow devices: tighten vertical space */
+@media (max-height: 500px) {
+  #ui-topbar { padding: 3px 8px !important; font-size: 10px !important; }
+  #ui-bars { bottom: 4px !important; }
+  #ui-bars > div { height: 14px !important; }
+  #ui-actions { bottom: 4px; }
+  #ui-actions button { width: 36px !important; height: 36px !important; font-size: 16px !important; }
+  #ui-log { max-height: 60px !important; bottom: 42px; }
+  #panel-right { top: 28px !important; max-height: calc(100dvh - 36px) !important; }
+  .auth-container { padding: 14px !important; }
+  .game-title { font-size: 26px; margin-bottom: 6px; }
+  .game-subtitle { margin-bottom: 10px !important; }
 }
+/* Portrait warning: suggest rotating */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+  body::after {
+    content: '🔄 Rotate to landscape for best experience';
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,215,0,0.12); color: #ffd700; font-size: 11px;
+    padding: 4px 12px; border-radius: 12px; z-index: 999; pointer-events: none;
+    animation: fadeHint 6s forwards;
+  }
+}
+@keyframes fadeHint { 0%,70%{opacity:1;} 100%{opacity:0;} }
 </style>
 </head>
 <body>
@@ -75,6 +100,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <button type="submit" class="btn-primary">Create Account</button>
 </form>
 <p id="auth-error" class="error-msg"></p>
+<button type="button" class="btn-link" onclick="openImport()" style="font-size:12px;">📥 Import account from another device</button>
 </div>
 </div>
 
@@ -85,6 +111,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <h2 style="color:#ffd700;margin-bottom:20px;">Select Character</h2>
 <div id="character-list"></div>
 <button class="btn-secondary" onclick="showCreateModal()">Create New Character</button>
+<br>
+<button class="btn-link" onclick="openExport()">📤 Export account (to play on another device)</button>
 <button class="btn-link" onclick="doLogout()">Logout</button>
 </div>
 <div id="create-modal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;z-index:100;">
@@ -129,7 +157,21 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <div id="ui-log" style="pointer-events:auto;position:absolute;bottom:40px;left:10px;width:320px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.75);border-radius:4px;padding:6px;font-size:12px;">
 <div id="log-messages"></div>
 </div>
-<div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100vh - 100px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;"></div>
+<div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100dvh - 60px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;font-size:13px;"></div>
+<div id="item-modal" class="hidden" style="pointer-events:auto;position:absolute;inset:0;background:rgba(0,0,0,0.7);display:flex;z-index:200;" onclick="if(event.target===this)this.classList.add('hidden')">
+<div id="item-modal-body" style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:18px;min-width:220px;max-width:90vw;max-height:85dvh;overflow-y:auto;"></div>
+</div>
+</div>
+</div>
+
+
+<div id="transfer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.78);display:flex;z-index:300;" onclick="if(event.target===this)this.classList.add('hidden')">
+<div style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:20px;width:92vw;max-width:460px;">
+<h3 id="transfer-title" style="color:#ffd700;margin-bottom:8px;">Transfer Account</h3>
+<p id="transfer-desc" style="color:#aaa;font-size:12px;margin-bottom:10px;"></p>
+<textarea id="transfer-text" style="width:100%;height:120px;background:#0e0e1e;border:1px solid #333;color:#cfe;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:vertical;" spellcheck="false"></textarea>
+<div id="transfer-actions" style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;"></div>
+<p id="transfer-msg" style="color:#8f8;font-size:12px;min-height:16px;margin-top:6px;"></p>
 </div>
 </div>
 
@@ -142,37 +184,138 @@ const CLASS_DATA = {
   fairy_elf: { name:'Fairy Elf', desc:'Agile archer', baseHp:90, baseMp:60, baseStr:18, baseAgi:28, baseVit:18, baseEne:20, hpPerVit:2.5, mpPerEne:2, hpPerLevel:5, mpPerLevel:4, dmgPerStr:0.5, dmgPerAgi:1.0, speed:1.3, startItems:['short_bow','vine_armor','small_hp_potion','small_hp_potion','small_hp_potion'], color:'#22cc22' }
 };
 
+const _I='https://raw.githubusercontent.com/r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons/master/imgs/items/';
 const ITEMS = {
-  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword'},
-  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger'},
-  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade'},
-  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade'},
-  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull'},
-  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff'},
-  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff'},
-  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow'},
-  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow'},
-  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow'},
-  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather'},
-  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales'},
-  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate'},
-  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes'},
-  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor'},
-  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor'},
-  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk'},
-  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield'},
-  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler'},
-  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm'},
-  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm'},
-  leather_boots:{name:'Leather Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Basic boots'},
-  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots'},
-  small_hp_potion:{name:'Small HP Potion',type:'consumable',healHp:50,price:50,desc:'Restores 50 HP'},
-  medium_hp_potion:{name:'Medium HP Potion',type:'consumable',healHp:150,price:200,desc:'Restores 150 HP'},
-  large_hp_potion:{name:'Large HP Potion',type:'consumable',healHp:400,price:600,desc:'Restores 400 HP'},
-  small_mp_potion:{name:'Small MP Potion',type:'consumable',healMp:30,price:60,desc:'Restores 30 MP'},
-  medium_mp_potion:{name:'Medium MP Potion',type:'consumable',healMp:100,price:250,desc:'Restores 100 MP'},
-  jewel_of_bless:{name:'Jewel of Bless',type:'misc',price:5000,desc:'Rare enchanting jewel'},
-  jewel_of_soul:{name:'Jewel of Soul',type:'misc',price:5000,desc:'Soul energy jewel'}
+  // ===== SWORDS (group 0) =====
+  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword',img:_I+'0/0.png',cls:'dark_knight'},
+  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger',img:_I+'0/1.png',cls:'dark_knight'},
+  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade',img:_I+'0/2.png',cls:'dark_knight'},
+  katana:{name:'Katana',type:'weapon',slot:'weapon',attack:28,price:3500,desc:'Eastern curved blade',img:_I+'0/3.png',cls:'dark_knight'},
+  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade',img:_I+'0/4.png',cls:'dark_knight'},
+  sword_of_assassin:{name:'Sword of Assassin',type:'weapon',slot:'weapon',attack:38,price:7000,desc:'Silent killer blade',img:_I+'0/5.png',cls:'dark_knight'},
+  legendary_sword:{name:'Legendary Sword',type:'weapon',slot:'weapon',attack:46,price:12000,desc:'Legendary weapon of heroes',img:_I+'0/6.png',cls:'dark_knight'},
+  heliacal_sword:{name:'Heliacal Sword',type:'weapon',slot:'weapon',attack:56,price:20000,desc:'Sun-forged ancient blade',img:_I+'0/7.png',cls:'dark_knight'},
+  double_blade:{name:'Double Blade',type:'weapon',slot:'weapon',attack:64,price:30000,desc:'Twin-edged destruction',img:_I+'0/8.png',cls:'dark_knight'},
+  lightning_sword:{name:'Lightning Sword',type:'weapon',slot:'weapon',attack:72,price:45000,desc:'Crackling with thunder',img:_I+'0/9.png',cls:'dark_knight'},
+  // ===== AXES (group 1) =====
+  small_axe:{name:'Small Axe',type:'weapon',slot:'weapon',attack:8,price:300,desc:'Light hatchet',img:_I+'1/0.png',cls:'dark_knight'},
+  hand_axe:{name:'Hand Axe',type:'weapon',slot:'weapon',attack:14,price:700,desc:'One-handed axe',img:_I+'1/1.png',cls:'dark_knight'},
+  double_axe:{name:'Double Axe',type:'weapon',slot:'weapon',attack:22,price:1800,desc:'Heavy double-head',img:_I+'1/2.png',cls:'dark_knight'},
+  tomahawk:{name:'Tomahawk',type:'weapon',slot:'weapon',attack:30,price:3200,desc:'Throwing axe',img:_I+'1/3.png',cls:'dark_knight'},
+  elven_axe:{name:'Elven Axe',type:'weapon',slot:'weapon',attack:36,price:5500,desc:'Elven-forged waraxe',img:_I+'1/4.png',cls:'dark_knight'},
+  battle_axe:{name:'Battle Axe',type:'weapon',slot:'weapon',attack:44,price:9000,desc:'Massive two-hand axe',img:_I+'1/5.png',cls:'dark_knight'},
+  nikkea_axe:{name:'Nikea Axe',type:'weapon',slot:'weapon',attack:52,price:16000,desc:'Demon-slayer axe',img:_I+'1/6.png',cls:'dark_knight'},
+  // ===== MACES/SCEPTERS (group 2) =====
+  mace:{name:'Mace',type:'weapon',slot:'weapon',attack:10,price:400,desc:'Blunt mace',img:_I+'2/0.png',cls:'dark_knight'},
+  morning_star:{name:'Morning Star',type:'weapon',slot:'weapon',attack:18,price:1200,desc:'Spiked flail',img:_I+'2/1.png',cls:'dark_knight'},
+  flail:{name:'Flail',type:'weapon',slot:'weapon',attack:26,price:2600,desc:'Chain flail',img:_I+'2/2.png',cls:'dark_knight'},
+  great_hammer:{name:'Great Hammer',type:'weapon',slot:'weapon',attack:34,price:4800,desc:'Earth-shaking hammer',img:_I+'2/3.png',cls:'dark_knight'},
+  crystal_morning_star:{name:'Crystal Morning Star',type:'weapon',slot:'weapon',attack:42,price:8500,desc:'Enchanted crystal mace',img:_I+'2/4.png',cls:'dark_knight'},
+  // ===== SPEARS (group 3) =====
+  spear:{name:'Spear',type:'weapon',slot:'weapon',attack:9,price:350,desc:'Simple spear',img:_I+'3/0.png',cls:'dark_knight'},
+  dragon_lance:{name:'Dragon Lance',type:'weapon',slot:'weapon',attack:24,price:2800,desc:'Dragon-scale tipped',img:_I+'3/1.png',cls:'dark_knight'},
+  giant_trident:{name:'Giant Trident',type:'weapon',slot:'weapon',attack:36,price:6000,desc:'Three-pronged trident',img:_I+'3/2.png',cls:'dark_knight'},
+  serpent_spear:{name:'Serpent Spear',type:'weapon',slot:'weapon',attack:48,price:14000,desc:'Venomous serpent lance',img:_I+'3/3.png',cls:'dark_knight'},
+  // ===== BOWS (group 4) =====
+  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow',img:_I+'4/0.png',cls:'fairy_elf'},
+  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow',img:_I+'4/1.png',cls:'fairy_elf'},
+  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow',img:_I+'4/2.png',cls:'fairy_elf'},
+  battle_bow:{name:'Battle Bow',type:'weapon',slot:'weapon',attack:32,price:4200,desc:'War-grade composite bow',img:_I+'4/3.png',cls:'fairy_elf'},
+  tiger_bow:{name:'Tiger Bow',type:'weapon',slot:'weapon',attack:40,price:7500,desc:'Fierce tiger-sinew bow',img:_I+'4/4.png',cls:'fairy_elf'},
+  silver_bow:{name:'Silver Bow',type:'weapon',slot:'weapon',attack:50,price:13000,desc:'Moonsilver enchanted bow',img:_I+'4/5.png',cls:'fairy_elf'},
+  chaos_nature_bow:{name:'Chaos Nature Bow',type:'weapon',slot:'weapon',attack:60,price:22000,desc:'Bow infused with chaos',img:_I+'4/6.png',cls:'fairy_elf'},
+  // ===== CROSSBOWS (group 4 high) =====
+  crossbow:{name:'Crossbow',type:'weapon',slot:'weapon',attack:18,price:1100,desc:'Mechanical crossbow',img:_I+'4/7.png',cls:'fairy_elf'},
+  golden_crossbow:{name:'Golden Crossbow',type:'weapon',slot:'weapon',attack:36,price:5800,desc:'Gold-plated crossbow',img:_I+'4/8.png',cls:'fairy_elf'},
+  arquebus:{name:'Arquebus',type:'weapon',slot:'weapon',attack:48,price:11000,desc:'Early gunpowder weapon',img:_I+'4/9.png',cls:'fairy_elf'},
+  // ===== STAFFS (group 5) =====
+  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull',img:_I+'5/0.png',cls:'dark_wizard'},
+  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff',img:_I+'5/1.png',cls:'dark_wizard'},
+  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff',img:_I+'5/2.png',cls:'dark_wizard'},
+  thunder_staff:{name:'Thunder Staff',type:'weapon',slot:'weapon',attack:10,magic:36,price:5500,desc:'Storm-calling staff',img:_I+'5/3.png',cls:'dark_wizard'},
+  gorgon_staff:{name:'Gorgon Staff',type:'weapon',slot:'weapon',attack:12,magic:44,price:9000,desc:'Petrifying gaze staff',img:_I+'5/4.png',cls:'dark_wizard'},
+  legendary_staff:{name:'Legendary Staff',type:'weapon',slot:'weapon',attack:14,magic:54,price:15000,desc:'Staff of ancient power',img:_I+'5/5.png',cls:'dark_wizard'},
+  staff_of_resurrection:{name:'Staff of Resurrection',type:'weapon',slot:'weapon',attack:16,magic:64,price:25000,desc:'Revives fallen allies',img:_I+'5/6.png',cls:'dark_wizard'},
+  chaos_lightning_staff:{name:'Chaos Lightning Staff',type:'weapon',slot:'weapon',attack:20,magic:76,price:40000,desc:'Ultimate chaos magic',img:_I+'5/7.png',cls:'dark_wizard'},
+  // ===== SHIELDS (group 6) =====
+  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield',img:_I+'6/0.png'},
+  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler',img:_I+'6/1.png'},
+  horn_shield:{name:'Horn Shield',type:'shield',slot:'shield',defense:11,price:2200,desc:'Horned beast shield',img:_I+'6/2.png'},
+  kite_shield:{name:'Kite Shield',type:'shield',slot:'shield',defense:15,price:3800,desc:'Large kite shield',img:_I+'6/3.png'},
+  skull_shield:{name:'Skull Shield',type:'shield',slot:'shield',defense:19,price:5500,desc:'Shield of skulls',img:_I+'6/4.png'},
+  large_round_shield:{name:'Large Round Shield',type:'shield',slot:'shield',defense:23,price:8000,desc:'Heavy round shield',img:_I+'6/5.png'},
+  dragon_slayer_shield:{name:'Dragon Slayer Shield',type:'shield',slot:'shield',defense:28,price:14000,desc:'Forged from dragon scale',img:_I+'6/6.png'},
+  // ===== HELMS (group 7) =====
+  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm',img:_I+'7/0.png'},
+  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm',img:_I+'7/1.png'},
+  brass_helm:{name:'Brass Helm',type:'helmet',slot:'helmet',defense:9,price:1500,desc:'Heavy brass helm',img:_I+'7/2.png'},
+  plate_helm:{name:'Plate Helm',type:'helmet',slot:'helmet',defense:13,price:3000,desc:'Full plate helm',img:_I+'7/3.png'},
+  dragon_helm:{name:'Dragon Helm',type:'helmet',slot:'helmet',defense:18,price:7000,desc:'Dragon-forged helm',img:_I+'7/4.png'},
+  pad_helm:{name:'Pad Helm',type:'helmet',slot:'helmet',defense:3,price:300,desc:'Padded wizard cap',img:_I+'7/5.png',cls:'dark_wizard'},
+  bone_helm:{name:'Bone Helm',type:'helmet',slot:'helmet',defense:7,price:1000,desc:'Bone wizard crown',img:_I+'7/6.png',cls:'dark_wizard'},
+  sphinx_helm:{name:'Sphinx Helm',type:'helmet',slot:'helmet',defense:12,price:3200,desc:'Enigmatic sphinx mask',img:_I+'7/7.png',cls:'dark_wizard'},
+  vine_helm:{name:'Vine Helm',type:'helmet',slot:'helmet',defense:3,price:300,desc:'Elven vine circlet',img:_I+'7/8.png',cls:'fairy_elf'},
+  silk_helm:{name:'Silk Helm',type:'helmet',slot:'helmet',defense:6,price:900,desc:'Silken elf hood',img:_I+'7/9.png',cls:'fairy_elf'},
+  // ===== ARMOR (group 8) =====
+  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather',img:_I+'8/0.png',cls:'dark_knight'},
+  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales',img:_I+'8/1.png',cls:'dark_knight'},
+  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate',img:_I+'8/2.png',cls:'dark_knight'},
+  plate_armor:{name:'Plate Armor',type:'armor',slot:'armor',defense:30,price:8000,desc:'Full plate mail',img:_I+'8/3.png',cls:'dark_knight'},
+  dragon_armor:{name:'Dragon Armor',type:'armor',slot:'armor',defense:40,price:18000,desc:'Dragon scale plate',img:_I+'8/4.png',cls:'dark_knight'},
+  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes',img:_I+'8/5.png',cls:'dark_wizard'},
+  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor',img:_I+'8/6.png',cls:'dark_wizard'},
+  sphinx_armor:{name:'Sphinx Armor',type:'armor',slot:'armor',defense:16,price:3500,desc:'Enigmatic robes',img:_I+'8/7.png',cls:'dark_wizard'},
+  legendary_armor:{name:'Legendary Armor',type:'armor',slot:'armor',defense:26,price:10000,desc:'Legendary wizard robe',img:_I+'8/8.png',cls:'dark_wizard'},
+  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor',img:_I+'8/9.png',cls:'fairy_elf'},
+  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk',img:_I+'8/10.png',cls:'fairy_elf'},
+  wind_armor:{name:'Wind Armor',type:'armor',slot:'armor',defense:18,price:4200,desc:'Wind-blessed armor',img:_I+'8/11.png',cls:'fairy_elf'},
+  spirit_armor:{name:'Spirit Armor',type:'armor',slot:'armor',defense:28,price:12000,desc:'Spirit-infused mail',img:_I+'8/12.png',cls:'fairy_elf'},
+  // ===== PANTS (group 9) =====
+  leather_pants:{name:'Leather Pants',type:'pants',slot:'pants',defense:3,price:250,desc:'Basic leggings',img:_I+'9/0.png',cls:'dark_knight'},
+  scale_pants:{name:'Scale Pants',type:'pants',slot:'pants',defense:8,price:1000,desc:'Scale leggings',img:_I+'9/1.png',cls:'dark_knight'},
+  brass_pants:{name:'Brass Pants',type:'pants',slot:'pants',defense:14,price:2800,desc:'Brass greaves',img:_I+'9/2.png',cls:'dark_knight'},
+  plate_pants:{name:'Plate Pants',type:'pants',slot:'pants',defense:20,price:6000,desc:'Plate leggings',img:_I+'9/3.png',cls:'dark_knight'},
+  pad_pants:{name:'Pad Pants',type:'pants',slot:'pants',defense:2,price:250,desc:'Padded trousers',img:_I+'9/5.png',cls:'dark_wizard'},
+  bone_pants:{name:'Bone Pants',type:'pants',slot:'pants',defense:6,price:800,desc:'Bone leggings',img:_I+'9/6.png',cls:'dark_wizard'},
+  vine_pants:{name:'Vine Pants',type:'pants',slot:'pants',defense:3,price:250,desc:'Vine-woven tights',img:_I+'9/8.png',cls:'fairy_elf'},
+  silk_pants:{name:'Silk Pants',type:'pants',slot:'pants',defense:7,price:900,desc:'Silk leggings',img:_I+'9/9.png',cls:'fairy_elf'},
+  // ===== GLOVES (group 10) =====
+  leather_gloves:{name:'Leather Gloves',type:'gloves',slot:'gloves',defense:2,price:200,desc:'Basic gloves',img:_I+'10/0.png',cls:'dark_knight'},
+  scale_gloves:{name:'Scale Gloves',type:'gloves',slot:'gloves',defense:5,price:700,desc:'Scale gauntlets',img:_I+'10/1.png',cls:'dark_knight'},
+  brass_gloves:{name:'Brass Gloves',type:'gloves',slot:'gloves',defense:9,price:1800,desc:'Brass gauntlets',img:_I+'10/2.png',cls:'dark_knight'},
+  plate_gloves:{name:'Plate Gloves',type:'gloves',slot:'gloves',defense:14,price:4000,desc:'Plate gauntlets',img:_I+'10/3.png',cls:'dark_knight'},
+  pad_gloves:{name:'Pad Gloves',type:'gloves',slot:'gloves',defense:2,price:200,desc:'Padded gloves',img:_I+'10/5.png',cls:'dark_wizard'},
+  bone_gloves:{name:'Bone Gloves',type:'gloves',slot:'gloves',defense:4,price:600,desc:'Bone grips',img:_I+'10/6.png',cls:'dark_wizard'},
+  vine_gloves:{name:'Vine Gloves',type:'gloves',slot:'gloves',defense:2,price:200,desc:'Vine wraps',img:_I+'10/8.png',cls:'fairy_elf'},
+  silk_gloves:{name:'Silk Gloves',type:'gloves',slot:'gloves',defense:5,price:650,desc:'Silk archer gloves',img:_I+'10/9.png',cls:'fairy_elf'},
+  // ===== BOOTS (group 11) =====
+  leather_boots:{name:'Leather Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Basic boots',img:_I+'11/0.png',cls:'dark_knight'},
+  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots',img:_I+'11/1.png',cls:'dark_knight'},
+  brass_boots:{name:'Brass Boots',type:'boots',slot:'boots',defense:8,price:1600,desc:'Heavy brass boots',img:_I+'11/2.png',cls:'dark_knight'},
+  plate_boots:{name:'Plate Boots',type:'boots',slot:'boots',defense:12,price:3500,desc:'Plate greaves',img:_I+'11/3.png',cls:'dark_knight'},
+  pad_boots:{name:'Pad Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Soft padded shoes',img:_I+'11/5.png',cls:'dark_wizard'},
+  bone_boots:{name:'Bone Boots',type:'boots',slot:'boots',defense:4,price:550,desc:'Bone shoes',img:_I+'11/6.png',cls:'dark_wizard'},
+  vine_boots:{name:'Vine Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Light vine sandals',img:_I+'11/8.png',cls:'fairy_elf'},
+  silk_boots:{name:'Silk Boots',type:'boots',slot:'boots',defense:5,price:600,desc:'Silk elf shoes',img:_I+'11/9.png',cls:'fairy_elf'},
+  // ===== WINGS (group 12) =====
+  wings_of_elf:{name:'Wings of Elf',type:'wings',slot:'wings',defense:10,attack:12,price:50000,desc:'Ethereal elf wings',img:_I+'12/0.png',cls:'fairy_elf'},
+  wings_of_heaven:{name:'Wings of Heaven',type:'wings',slot:'wings',defense:12,attack:16,price:60000,desc:'Angelic divine wings',img:_I+'12/1.png',cls:'dark_knight'},
+  wings_of_satan:{name:'Wings of Satan',type:'wings',slot:'wings',defense:14,magic:20,price:70000,desc:'Demonic dark wings',img:_I+'12/2.png',cls:'dark_wizard'},
+  // ===== POTIONS / CONSUMABLES (group 14) =====
+  small_hp_potion:{name:'Small HP Potion',type:'consumable',healHp:50,price:50,desc:'Restores 50 HP',img:_I+'14/0.png'},
+  medium_hp_potion:{name:'Medium HP Potion',type:'consumable',healHp:150,price:200,desc:'Restores 150 HP',img:_I+'14/1.png'},
+  large_hp_potion:{name:'Large HP Potion',type:'consumable',healHp:400,price:600,desc:'Restores 400 HP',img:_I+'14/2.png'},
+  small_mp_potion:{name:'Small MP Potion',type:'consumable',healMp:30,price:60,desc:'Restores 30 MP',img:_I+'14/3.png'},
+  medium_mp_potion:{name:'Medium MP Potion',type:'consumable',healMp:100,price:250,desc:'Restores 100 MP',img:_I+'14/4.png'},
+  large_mp_potion:{name:'Large MP Potion',type:'consumable',healMp:300,price:700,desc:'Restores 300 MP',img:_I+'14/5.png'},
+  antidote:{name:'Antidote',type:'consumable',healHp:20,price:30,desc:'Cures poison',img:_I+'14/6.png'},
+  // ===== JEWELS / MISC (group 14 high) =====
+  jewel_of_bless:{name:'Jewel of Bless',type:'misc',price:5000,desc:'Blesses items safely (+upgrade)',img:_I+'14/13.png'},
+  jewel_of_soul:{name:'Jewel of Soul',type:'misc',price:5000,desc:'Adds soul to items (+upgrade risky)',img:_I+'14/14.png'},
+  jewel_of_life:{name:'Jewel of Life',type:'misc',price:8000,desc:'Adds life option to items',img:_I+'14/16.png'},
+  jewel_of_chaos:{name:'Jewel of Chaos',type:'misc',price:10000,desc:'Used in chaos combinations',img:_I+'14/15.png'},
+  jewel_of_creation:{name:'Jewel of Creation',type:'misc',price:12000,desc:'Rare creation material',img:_I+'14/22.png'},
+  box_of_luck:{name:'Box of Luck',type:'misc',price:3000,desc:'Open for a random item',img:_I+'14/11.png'}
 };
 </script>
 
@@ -182,12 +325,12 @@ const MONSTERS = {
   spider:{id:'spider',name:'Spider',level:1,hp:30,attack:4,defense:1,exp:10,zen:50,drops:[{id:'small_hp_potion',chance:0.3}]},
   budge_dragon:{id:'budge_dragon',name:'Budge Dragon',level:3,hp:60,attack:8,defense:2,exp:25,zen:100,drops:[{id:'small_hp_potion',chance:0.25},{id:'leather_boots',chance:0.05}]},
   bull_fighter:{id:'bull_fighter',name:'Bull Fighter',level:5,hp:100,attack:12,defense:4,exp:45,zen:180,drops:[{id:'small_hp_potion',chance:0.2},{id:'leather_helm',chance:0.04},{id:'small_shield',chance:0.03}]},
-  hound:{id:'hound',name:'Hound',level:8,hp:160,attack:18,defense:6,exp:80,zen:280,drops:[{id:'medium_hp_potion',chance:0.15},{id:'kris',chance:0.03},{id:'scale_boots',chance:0.04}]},
-  dark_knight_mob:{id:'dark_knight_mob',name:'Dark Knight',level:12,hp:280,attack:28,defense:10,exp:150,zen:450,drops:[{id:'medium_hp_potion',chance:0.2},{id:'scale_armor',chance:0.03},{id:'rapier',chance:0.02}]},
-  ice_monster:{id:'ice_monster',name:'Ice Monster',level:16,hp:400,attack:35,defense:14,exp:250,zen:600,drops:[{id:'medium_hp_potion',chance:0.25},{id:'angelic_staff',chance:0.03},{id:'bow',chance:0.03}]},
-  yeti:{id:'yeti',name:'Yeti',level:20,hp:600,attack:45,defense:18,exp:400,zen:900,drops:[{id:'large_hp_potion',chance:0.15},{id:'brass_armor',chance:0.02},{id:'jewel_of_bless',chance:0.005}]},
-  goblin:{id:'goblin',name:'Goblin',level:10,hp:200,attack:22,defense:8,exp:110,zen:350,drops:[{id:'small_hp_potion',chance:0.2},{id:'elven_bow',chance:0.02},{id:'silk_armor',chance:0.03}]},
-  forest_monster:{id:'forest_monster',name:'Forest Monster',level:18,hp:500,attack:40,defense:16,exp:320,zen:750,drops:[{id:'medium_hp_potion',chance:0.2},{id:'serpent_staff',chance:0.02},{id:'blade',chance:0.02},{id:'jewel_of_soul',chance:0.005}]}
+  hound:{id:'hound',name:'Hound',level:8,hp:160,attack:18,defense:6,exp:80,zen:280,drops:[{id:'medium_hp_potion',chance:0.15},{id:'kris',chance:0.03},{id:'scale_boots',chance:0.04},{id:'scale_gloves',chance:0.03}]},
+  dark_knight_mob:{id:'dark_knight_mob',name:'Dark Knight',level:12,hp:280,attack:28,defense:10,exp:150,zen:450,drops:[{id:'medium_hp_potion',chance:0.2},{id:'scale_armor',chance:0.03},{id:'rapier',chance:0.02},{id:'brass_helm',chance:0.02},{id:'horn_shield',chance:0.02}]},
+  ice_monster:{id:'ice_monster',name:'Ice Monster',level:16,hp:400,attack:35,defense:14,exp:250,zen:600,drops:[{id:'medium_hp_potion',chance:0.25},{id:'angelic_staff',chance:0.03},{id:'bow',chance:0.03},{id:'brass_armor',chance:0.02},{id:'brass_boots',chance:0.02}]},
+  yeti:{id:'yeti',name:'Yeti',level:20,hp:600,attack:45,defense:18,exp:400,zen:900,drops:[{id:'large_hp_potion',chance:0.15},{id:'brass_armor',chance:0.02},{id:'plate_helm',chance:0.015},{id:'kite_shield',chance:0.015},{id:'jewel_of_bless',chance:0.005}]},
+  goblin:{id:'goblin',name:'Goblin',level:10,hp:200,attack:22,defense:8,exp:110,zen:350,drops:[{id:'small_hp_potion',chance:0.2},{id:'elven_bow',chance:0.02},{id:'silk_armor',chance:0.03},{id:'silk_boots',chance:0.03},{id:'silk_gloves',chance:0.02}]},
+  forest_monster:{id:'forest_monster',name:'Forest Monster',level:18,hp:500,attack:40,defense:16,exp:320,zen:750,drops:[{id:'medium_hp_potion',chance:0.2},{id:'serpent_staff',chance:0.02},{id:'blade',chance:0.02},{id:'wind_armor',chance:0.015},{id:'skull_shield',chance:0.015},{id:'jewel_of_soul',chance:0.005}]}
 };
 
 const MAPS = {
@@ -224,9 +367,9 @@ const MAPS = {
 };
 
 const SHOPS = {
-  shop_weapon:['short_sword','kris','rapier','blade','skull_staff','angelic_staff','serpent_staff','short_bow','bow','elven_bow'],
-  shop_armor:['leather_armor','scale_armor','brass_armor','pad_armor','bone_armor','vine_armor','silk_armor','small_shield','buckler','leather_helm','scale_helm','leather_boots','scale_boots'],
-  shop_potion:['small_hp_potion','medium_hp_potion','large_hp_potion','small_mp_potion','medium_mp_potion']
+  shop_weapon:['short_sword','kris','rapier','katana','blade','sword_of_assassin','legendary_sword','small_axe','hand_axe','double_axe','tomahawk','mace','morning_star','spear','dragon_lance','skull_staff','angelic_staff','serpent_staff','thunder_staff','gorgon_staff','short_bow','bow','elven_bow','battle_bow','tiger_bow','crossbow','golden_crossbow'],
+  shop_armor:['leather_armor','scale_armor','brass_armor','plate_armor','pad_armor','bone_armor','sphinx_armor','vine_armor','silk_armor','wind_armor','leather_helm','scale_helm','brass_helm','plate_helm','pad_helm','bone_helm','vine_helm','silk_helm','small_shield','buckler','horn_shield','kite_shield','skull_shield','leather_boots','scale_boots','brass_boots','pad_boots','bone_boots','vine_boots','silk_boots','leather_pants','scale_pants','brass_pants','pad_pants','bone_pants','vine_pants','silk_pants','leather_gloves','scale_gloves','brass_gloves','pad_gloves','bone_gloves','vine_gloves','silk_gloves'],
+  shop_potion:['small_hp_potion','medium_hp_potion','large_hp_potion','small_mp_potion','medium_mp_potion','large_mp_potion','antidote']
 };
 </script>
 
@@ -298,6 +441,89 @@ function doLogin(e) {
 function doLogout() { Store.del('session'); currentUser = null; showScreen('screen-auth'); }
 function showErr(msg) { document.getElementById('auth-error').textContent = msg; }
 
+// ===== ACCOUNT TRANSFER (cross-device export / import) =====
+// localStorage is per-device, so accounts don't follow you between browsers/phones.
+// These let you carry your whole account (characters + inventory with all item
+// options) to another device via a copy-paste code.
+function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64decode(code) { return decodeURIComponent(escape(atob(code))); }
+
+function exportCodeFor(username) {
+  const acc = getAccounts().find(a => a.username === username);
+  if (!acc) return null;
+  const characters = getChars().filter(c => c.owner === username);
+  const inv = {};
+  characters.forEach(c => { inv[c.id] = getInv(c.id); });
+  return b64encode(JSON.stringify({ v: 1, exportedAt: Date.now(), account: acc, characters, inv }));
+}
+
+function importCode(code) {
+  let blob;
+  try { blob = JSON.parse(b64decode((code || '').trim())); }
+  catch (e) { return { ok: false, msg: 'Invalid code - could not read it.' }; }
+  if (!blob || !blob.account || !blob.account.username || !Array.isArray(blob.characters)) {
+    return { ok: false, msg: 'Invalid account data.' };
+  }
+  const accounts = getAccounts();
+  const ai = accounts.findIndex(a => a.username === blob.account.username);
+  if (ai >= 0) accounts[ai] = blob.account; else accounts.push(blob.account);
+  saveAccounts(accounts);
+  const chars = getChars();
+  blob.characters.forEach(ch => { const i = chars.findIndex(x => x.id === ch.id); if (i >= 0) chars[i] = ch; else chars.push(ch); });
+  saveChars(chars);
+  Object.keys(blob.inv || {}).forEach(id => saveInv(id, blob.inv[id]));
+  return { ok: true, msg: 'Imported! Log in as "' + blob.account.username + '" to play your characters here.', username: blob.account.username };
+}
+
+function openExport() {
+  const code = exportCodeFor(currentUser);
+  const modal = document.getElementById('transfer-modal');
+  document.getElementById('transfer-title').textContent = '📤 Export Account';
+  document.getElementById('transfer-desc').textContent = 'Copy this code, then on your other device tap "Import account" and paste it.';
+  const ta = document.getElementById('transfer-text');
+  ta.value = code || ''; ta.readOnly = true;
+  document.getElementById('transfer-msg').textContent = code ? '' : 'No account to export.';
+  document.getElementById('transfer-actions').innerHTML =
+    `<button class="btn-secondary" onclick="copyTransfer()">Copy</button>` +
+    `<button class="btn-link" onclick="document.getElementById('transfer-modal').classList.add('hidden')">Close</button>`;
+  modal.classList.remove('hidden');
+}
+
+function openImport() {
+  const modal = document.getElementById('transfer-modal');
+  document.getElementById('transfer-title').textContent = '📥 Import Account';
+  document.getElementById('transfer-desc').textContent = 'Paste the code you exported from your other device, then tap Import.';
+  const ta = document.getElementById('transfer-text');
+  ta.value = ''; ta.readOnly = false;
+  document.getElementById('transfer-msg').textContent = '';
+  document.getElementById('transfer-actions').innerHTML =
+    `<button class="btn-primary" style="padding:8px 16px;" onclick="doImport()">Import</button>` +
+    `<button class="btn-link" onclick="document.getElementById('transfer-modal').classList.add('hidden')">Close</button>`;
+  modal.classList.remove('hidden');
+}
+
+function doImport() {
+  const code = document.getElementById('transfer-text').value;
+  const r = importCode(code);
+  const msgEl = document.getElementById('transfer-msg');
+  msgEl.style.color = r.ok ? '#8f8' : '#ff6666';
+  msgEl.textContent = r.msg;
+  if (r.ok) {
+    const ln = document.getElementById('login-username'); if (ln) ln.value = r.username;
+    setTimeout(() => document.getElementById('transfer-modal').classList.add('hidden'), 1600);
+  }
+}
+
+function copyTransfer() {
+  const ta = document.getElementById('transfer-text');
+  ta.select();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value);
+    else document.execCommand('copy');
+    document.getElementById('transfer-msg').textContent = 'Copied to clipboard!';
+  } catch (e) { document.getElementById('transfer-msg').textContent = 'Press Ctrl/Cmd+C to copy.'; }
+}
+
 // ===== CHARACTER SELECT =====
 function loadCharSelect() {
   showScreen('screen-charselect');
@@ -366,7 +592,7 @@ function deleteChar(id) {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [] };
+let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [], autoAttack: false, autoLevel: false, afk: false };
 let canvas, ctx;
 
 function enterGame(charId) {
@@ -376,15 +602,17 @@ function enterGame(charId) {
   G.inv = getInv(charId);
   loadMap(G.char.mapId);
   showScreen('screen-game');
+  // Attempt to lock to landscape on mobile (supported on Chrome Android + PWA)
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){}
   canvas = document.getElementById('game-canvas');
   ctx = canvas.getContext('2d');
   resizeCanvas();
   window.onresize = resizeCanvas;
   canvas.onclick = handleClick;
-  // Touch support for mobile: tap to move / attack (preventDefault stops scroll, zoom and the ghost click).
-  // Property assignment (not addEventListener) so re-entering the game doesn't stack duplicate handlers.
-  canvas.ontouchstart = (e) => { e.preventDefault(); handleClick(e); };
-  canvas.ontouchmove = (e) => { e.preventDefault(); };
+  // Touch: single-tap moves/attacks; pinch-zoom is allowed by the browser (touch-action: manipulation).
+  // We only handle single-finger taps and let the browser handle multi-finger pinch natively.
+  canvas.ontouchstart = (e) => { if (e.touches.length === 1) { e.preventDefault(); handleClick(e); } };
+  canvas.ontouchmove = (e) => { if (e.touches.length === 1) e.preventDefault(); /* let 2-finger zoom through */ };
   G.running = true;
   G.lastT = Date.now();
   G.tileVar = Array.from({length:256*256}, () => Math.random()*0.15-0.075);
@@ -414,7 +642,10 @@ function buildActions() {
   document.getElementById('ui-actions').innerHTML = `
     <button onclick="togglePanel('inv')" title="Inventory" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🎒</button>
     <button onclick="togglePanel('stats')" title="Stats" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">📊</button>
+    <button id="btn-auto-atk" onclick="toggleAutoAttack()" title="Auto-Attack (auto-target & fight)" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">⚔️</button>
+    <button id="btn-afk" onclick="toggleAFK()" title="AFK Mode (auto-attack + auto-level + auto-potion)" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:14px;cursor:pointer;font-weight:bold;color:#ccc;">AFK</button>
     <button onclick="doRest()" title="Rest" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">💤</button>
+    <button onclick="togglePanel('admin')" title="Admin Panel" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">👑</button>
     <button onclick="saveAndQuit()" title="Save & Quit" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🚪</button>
   `;
 }
@@ -431,6 +662,19 @@ function gameLoop() {
 
 function update(dt) {
   const c = G.char;
+  // Auto-attack: automatically pick and chase the nearest monster (range depends on class)
+  if (G.autoAttack) {
+    let cur = G.target && G.mobs.find(x => x.uid === G.target);
+    if (!cur || !cur.alive) {
+      let best = null, bd = Infinity;
+      for (const m of G.mobs) { if (!m.alive) continue; const d = Math.hypot(m.x - c.px, m.y - c.py); if (d < bd) { bd = d; best = m; } }
+      if (best) { G.target = best.uid; cur = best; }
+    }
+    if (cur && cur.alive) {
+      const d = Math.hypot(cur.x - c.px, cur.y - c.py);
+      if (d >= attackRangeOf(c.cls)) G.moveTo = { x: cur.x, y: cur.y }; else G.moveTo = null;
+    }
+  }
   // Movement
   if (G.moveTo) {
     const dx = G.moveTo.x - c.px, dy = G.moveTo.y - c.py;
@@ -445,11 +689,13 @@ function update(dt) {
     const m = G.mobs.find(x => x.uid === G.target);
     if (m && m.alive) {
       const dx = m.x - c.px, dy = m.y - c.py;
-      if (Math.sqrt(dx*dx+dy*dy) < 30) { G.moveTo = null; doAttack(m); }
+      if (Math.sqrt(dx*dx+dy*dy) < attackRangeOf(c.cls)) { G.moveTo = null; doAttack(m); }
     } else { G.target = null; }
   }
   // Companion bots: follow the player, only engage monsters near the player
   updateCompanions(dt);
+  // AFK auto-potion
+  afkAutoPotion();
   // Monster respawn
   G.mobs.forEach(m => { if (!m.alive) { m.respawn -= dt; if (m.respawn <= 0) { m.alive = true; m.curHp = m.hp; m.x = m.spawnX; m.y = m.spawnY; } } });
   // Portal check
@@ -459,32 +705,243 @@ function update(dt) {
   });
 }
 
+// ===== ITEM OPTIONS / ATTRIBUTES =====
+// Owned item instances ({uid,itemId,equipped,...}) may carry extra attributes:
+//   plus  : upgrade level (+1..+15)        lucky : +Luck (crit + lucky damage)
+//   skill : weapon has a skill             add   : additional option (flat dmg/def)
+//   exc[] : "excellent" option codes (see below)
+const EXC_WEAPON = [
+  { code: 'excDmg',     label: 'Increase Damage +2%' },
+  { code: 'excDmgRate', label: 'Excellent Damage Rate +10%' },
+  { code: 'excSpeed',   label: 'Increase Attack Speed +10' },
+  { code: 'excLife',    label: 'Life after monster +HP' }
+];
+const EXC_ARMOR = [
+  { code: 'excHp',      label: 'Increase HP +4%' },
+  { code: 'excMp',      label: 'Increase Mana +4%' },
+  { code: 'excDefRate', label: 'Damage Decrease +4%' }
+];
+const EXC_LABELS = {};
+EXC_WEAPON.concat(EXC_ARMOR).forEach(e => { EXC_LABELS[e.code] = e.label; });
+
+// Roll random options for a looted (equippable) item.
+function rollItemOptions(itemId) {
+  const it = ITEMS[itemId];
+  const o = {};
+  if (!it || !it.slot) return o; // only equipment gets options
+  if (Math.random() < 0.5)  o.plus = 1 + Math.floor(Math.random() * 6);   // +1..+6
+  if (Math.random() < 0.2)  o.lucky = 1;
+  if (Math.random() < 0.15 && it.slot === 'weapon') o.skill = 1;
+  if (Math.random() < 0.25) o.add = 1 + Math.floor(Math.random() * 4);     // additional option
+  if (Math.random() < 0.18) {                                              // excellent (1-2 opts)
+    const pool = it.slot === 'weapon' ? EXC_WEAPON : EXC_ARMOR;
+    const count = 1 + Math.floor(Math.random() * 2);
+    const used = {}; o.exc = [];
+    for (let k = 0; k < count; k++) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if (used[pick.code]) continue; used[pick.code] = 1; o.exc.push(pick.code);
+    }
+  }
+  return o;
+}
+function isExcellent(i) { return !!(i && i.exc && i.exc.length); }
+
 // ===== DERIVED STATS =====
-// Centralised stat calculation. AGI now contributes to DEFENSE and to an
-// EVADE / dodge chance (so monster attacks can miss), in addition to attack.
+// Centralised stat calculation. AGI contributes to DEFENSE and to an EVADE / dodge
+// chance; equipped item options add damage, defense, crit, excellent/lucky chances,
+// attack speed and bonus max HP/MP.
 function computeStats(c, inv) {
   const cd = CLASS_DATA[c.cls] || {};
-  let weaponAtk = 0, armorDef = 0;
+  let weaponAtk = 0, armorDef = 0, weaponPlus = 0, armorPlus = 0, addDmgFlat = 0, addDefFlat = 0;
+  let excDmgPct = 0, excSpeed = 0, excHpPct = 0, excMpPct = 0, excDefPct = 0;
+  let excRateCount = 0, luckyCount = 0, skillCount = 0, hasExc = false;
   (inv || []).filter(i => i.equipped).forEach(i => {
     const it = ITEMS[i.itemId];
     if (!it) return;
     if (it.attack) weaponAtk += it.attack;
     if (it.defense) armorDef += it.defense;
+    const plus = i.plus || 0, add = i.add || 0;
+    if (it.slot === 'weapon') { weaponPlus += plus; addDmgFlat += add * 4; }
+    else if (it.slot) { armorPlus += plus; addDefFlat += add * 4; }
+    if (i.lucky) luckyCount++;
+    if (i.skill) skillCount++;
+    (i.exc || []).forEach(code => {
+      hasExc = true;
+      if (code === 'excDmg') excDmgPct += 0.02;
+      else if (code === 'excDmgRate') excRateCount++;
+      else if (code === 'excSpeed') excSpeed += 0.1;
+      else if (code === 'excHp') excHpPct += 0.04;
+      else if (code === 'excMp') excMpPct += 0.04;
+      else if (code === 'excDefRate') excDefPct += 0.04;
+    });
   });
-  // Outgoing damage (kept consistent with the original formula)
+  // Outgoing damage: stat + weapon + upgrade + additional option, then excellent %
   const statAtk = c.str * (cd.dmgPerStr || 1) + c.agi * (cd.dmgPerAgi || 0.3);
-  const baseDmg = statAtk + weaponAtk;
+  const baseDmg = (statAtk + weaponAtk + weaponPlus * 3 + addDmgFlat) * (1 + excDmgPct);
   const minDmg = Math.max(1, Math.floor(baseDmg * 0.8));
   const maxDmg = Math.max(1, Math.floor(baseDmg * 1.2));
-  // AGI -> Defense (added on top of equipped armor)
-  const agiDef = Math.floor(c.agi / 4);
-  const defense = armorDef + agiDef;
-  // AGI -> Evade / Dodge chance (0..60%), scales with AGI and a little with level
+  // AGI + armor + upgrade + additional option -> Defense
+  const agiDef = Math.floor(c.agi / 4);                 // AGI is the PRIMARY defense source (all classes)
+  // The class main stat gives a SMALLER defense bonus: STR for Dark Knight, ENE for Dark Wizard.
+  // (Elf's main stat is AGI, already counted above.)
+  const mainStat = mainStatOf(c.cls);
+  const mainDef = mainStat === 'agi' ? 0 : Math.floor((c[mainStat] || 0) / 12);
+  const defense = armorDef + agiDef + mainDef + armorPlus * 2 + addDefFlat;
+  // AGI -> Evade / Dodge chance (0..60%)
   const evade = Math.min(0.6, (c.agi + (c.level || 1) * 0.5) / 600);
-  // AGI -> attack speed and a small crit chance
-  const atkSpeed = (cd.speed || 1) + c.agi * 0.01;
-  const crit = Math.min(0.5, c.agi / 600);
-  return { weaponAtk, armorDef, baseDmg, minDmg, maxDmg, agiDef, defense, evade, atkSpeed, crit };
+  // Attack speed (AGI + excellent speed), crit (AGI + luck)
+  const atkSpeed = (cd.speed || 1) + c.agi * 0.01 + excSpeed;
+  const crit = Math.min(0.6, c.agi / 600 + luckyCount * 0.05);
+  // Damage-type chances for the floating combat numbers
+  const excChance = hasExc ? Math.min(0.5, 0.02 + excRateCount * 0.10) : 0;
+  const luckChance = Math.min(0.4, luckyCount * 0.10);
+  const dmgReduce = Math.min(0.5, excDefPct);
+  // Excellent armor options raise effective max HP / MP
+  const maxHp = Math.floor((c.maxHp || 0) * (1 + excHpPct));
+  const maxMp = Math.floor((c.maxMp || 0) * (1 + excMpPct));
+  return { weaponAtk, armorDef, baseDmg, minDmg, maxDmg, agiDef, defense, evade, atkSpeed, crit,
+           excChance, luckChance, dmgReduce, maxHp, maxMp, excHpPct, excMpPct,
+           weaponPlus, armorPlus, addDmgFlat, addDefFlat, skillCount, luckyCount, mainDef };
+}
+
+// Effective max HP/MP (includes excellent option bonuses)
+function maxHpOf(c) { return computeStats(c, G.inv).maxHp || c.maxHp; }
+function maxMpOf(c) { return computeStats(c, G.inv).maxMp || c.maxMp; }
+
+// ===== AUTO-ATTACK & AUTO-LEVEL =====
+function mainStatOf(cls) { return cls === 'dark_wizard' ? 'ene' : (cls === 'fairy_elf' ? 'agi' : 'str'); }
+// Dark Knight is melee (short reach); Dark Wizard & Fairy Elf are ranged (longer reach).
+function isRanged(cls) { return cls === 'dark_wizard' || cls === 'fairy_elf'; }
+function attackRangeOf(cls) { return isRanged(cls) ? 46 : 22; }
+
+function toggleAutoAttack() {
+  G.autoAttack = !G.autoAttack;
+  const b = document.getElementById('btn-auto-atk');
+  if (b) { b.style.background = G.autoAttack ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b.style.borderColor = G.autoAttack ? '#6f6' : '#444'; }
+  gameLog('Auto-attack ' + (G.autoAttack ? 'ON' : 'OFF'), 'system');
+  if (currentPanel === 'stats') renderStats();
+}
+function toggleAutoLevel() {
+  G.autoLevel = !G.autoLevel;
+  gameLog('Auto-level ' + (G.autoLevel ? 'ON' : 'OFF'), 'system');
+  if (G.autoLevel) autoAllocate();
+  if (currentPanel === 'stats') renderStats();
+}
+function autoAllocate() {
+  const c = G.char;
+  if (c.statPts <= 0) return;
+  const main = mainStatOf(c.cls);
+  const n = c.statPts;
+  c[main] += n; c.statPts = 0;
+  const cd = CLASS_DATA[c.cls];
+  if (main === 'vit') c.maxHp = cd.baseHp + (c.vit - cd.baseVit) * cd.hpPerVit;
+  if (main === 'ene') c.maxMp = cd.baseMp + (c.ene - cd.baseEne) * cd.mpPerEne;
+  gameLog('Auto-allocated ' + n + ' point' + (n > 1 ? 's' : '') + ' to ' + main.toUpperCase(), 'system');
+  if (currentPanel === 'stats') renderStats();
+  updateUI(); saveGame();
+}
+
+// ===== AFK MODE (auto-attack + auto-level + auto-potion) =====
+function toggleAFK() {
+  G.afk = !G.afk;
+  if (G.afk) { G.autoAttack = true; G.autoLevel = true; }
+  else { G.autoAttack = false; }
+  const b = document.getElementById('btn-afk');
+  if (b) { b.style.background = G.afk ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b.style.borderColor = G.afk ? '#6f6' : '#444'; b.style.color = G.afk ? '#6f6' : '#ccc'; }
+  const b2 = document.getElementById('btn-auto-atk');
+  if (b2) { b2.style.background = G.autoAttack ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b2.style.borderColor = G.autoAttack ? '#6f6' : '#444'; }
+  gameLog('AFK Mode ' + (G.afk ? 'ON (auto-attack + auto-level + auto-potion)' : 'OFF'), 'system');
+  if (currentPanel === 'stats') renderStats();
+}
+// AFK auto-potion: use HP potions when health drops below 40%
+function afkAutoPotion() {
+  if (!G.afk) return;
+  const c = G.char, mhp = maxHpOf(c);
+  if (c.hp < mhp * 0.4) {
+    const pot = G.inv.find(i => !i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].healHp);
+    if (pot) { useItem(pot.uid); }
+  }
+}
+
+// ===== ADMIN PANEL =====
+function renderAdmin() {
+  const items = Object.keys(ITEMS);
+  let html = `<h3 style="color:#ffd700;margin-bottom:8px;">Admin Panel 👑 <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
+  // Give item section with searchable dropdown
+  html += `<div style="color:#aaa;font-size:11px;margin:6px 0 4px;">Give Item to Character:</div>`;
+  html += `<input type="text" id="admin-item-search" placeholder="Search items..." oninput="filterAdminItems()" style="width:100%;padding:8px;background:#111;border:1px solid #444;color:#fff;border-radius:4px;font-size:12px;margin-bottom:4px;">`;
+  html += `<div id="admin-item-list" style="max-height:180px;overflow-y:auto;border:1px solid #333;border-radius:4px;background:#0e0e1e;">`;
+  items.forEach(id => {
+    const it = ITEMS[id];
+    const ic = it.img ? `<img src="${it.img}" style="width:20px;height:20px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:4px;" onerror="this.style.display='none'">` : '';
+    html += `<div class="adm-item" data-name="${it.name.toLowerCase()}" style="display:flex;align-items:center;gap:4px;padding:5px 8px;border-bottom:1px solid #1a1a2e;cursor:pointer;font-size:11px;" onclick="adminGiveItem('${id}')" onmouseover="this.style.background='#1a2a3a'" onmouseout="this.style.background=''">${ic}<span style="flex:1;color:#ddd;">${it.name}</span><small style="color:#888;">${it.type}${it.slot?' / '+it.slot:''}</small></div>`;
+  });
+  html += `</div>`;
+  html += `<div style="color:#aaa;font-size:10px;margin-top:4px;">Tap an item to add it to your bag (with random options for equipment).</div>`;
+  // Quick admin actions
+  html += `<hr style="border-color:#222;margin:12px 0;">`;
+  html += `<div style="color:#aaa;font-size:11px;margin-bottom:6px;">Quick Actions:</div>`;
+  html += `<div style="display:flex;flex-wrap:wrap;gap:4px;">`;
+  html += `<button onclick="adminAddZen(10000)" style="padding:5px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:11px;">+10k Zen</button>`;
+  html += `<button onclick="adminAddZen(100000)" style="padding:5px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:11px;">+100k Zen</button>`;
+  html += `<button onclick="adminAddExp()" style="padding:5px 10px;background:#16213e;border:1px solid #88ccff;color:#88ccff;border-radius:4px;cursor:pointer;font-size:11px;">+1 Level</button>`;
+  html += `<button onclick="adminAddStats(50)" style="padding:5px 10px;background:#16213e;border:1px solid #8f8;color:#8f8;border-radius:4px;cursor:pointer;font-size:11px;">+50 Stat Pts</button>`;
+  html += `<button onclick="adminHeal()" style="padding:5px 10px;background:#16213e;border:1px solid #f88;color:#f88;border-radius:4px;cursor:pointer;font-size:11px;">Full Heal</button>`;
+  html += `</div>`;
+  document.getElementById('panel-right').innerHTML = html;
+}
+
+function filterAdminItems() {
+  const q = (document.getElementById('admin-item-search').value || '').toLowerCase();
+  const list = document.getElementById('admin-item-list');
+  if (!list) return;
+  const items = list.querySelectorAll ? Array.from(list.querySelectorAll('.adm-item') || []) : [];
+  // Fallback: re-render with filter if querySelectorAll not available in env
+  if (!items.length) return;
+  items.forEach(el => { el.style.display = (!q || el.dataset.name.includes(q)) ? 'flex' : 'none'; });
+}
+
+function adminGiveItem(itemId) {
+  const uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const opts = rollItemOptions(itemId);
+  const li = Object.assign({ uid, itemId, equipped: 0 }, opts);
+  G.inv.push(li);
+  const it = ITEMS[itemId];
+  gameLog('Admin: gave ' + itemLabel(li) + (isExcellent(li) ? ' [Excellent]' : ''), 'system');
+  saveGame();
+}
+
+function adminAddZen(amount) {
+  G.char.zen += amount;
+  gameLog('Admin: +' + amount.toLocaleString() + ' Zen', 'system');
+  updateUI(); saveGame();
+}
+
+function adminAddExp() {
+  const needed = expForLevel(G.char.level);
+  G.char.exp = needed; // triggers level-up on next kill, or we can force it:
+  G.char.level++; G.char.statPts += 5;
+  const cd = CLASS_DATA[G.char.cls];
+  G.char.maxHp += cd.hpPerLevel; G.char.maxMp += cd.mpPerLevel;
+  G.char.hp = maxHpOf(G.char); G.char.mp = maxMpOf(G.char);
+  G.char.exp = 0;
+  if (G.autoLevel) autoAllocate();
+  gameLog('Admin: Level up! Now Lv.' + G.char.level, 'system');
+  updateUI(); saveGame();
+  if (currentPanel === 'admin') renderAdmin();
+}
+
+function adminAddStats(n) {
+  G.char.statPts += n;
+  gameLog('Admin: +' + n + ' stat points', 'system');
+  updateUI(); saveGame();
+}
+
+function adminHeal() {
+  G.char.hp = maxHpOf(G.char);
+  G.char.mp = maxMpOf(G.char);
+  gameLog('Admin: Full heal!', 'system');
+  updateUI(); saveGame();
 }
 
 // ===== COMPANION BOTS ("multiplayer feel") =====
@@ -597,26 +1054,30 @@ function companionAttack(comp, m) {
 function doAttack(m) {
   const c = G.char;
   const st = computeStats(c, G.inv);
-  G.atkCd = Math.max(350, Math.floor(1000 / (st.atkSpeed || 1)));
-  // Player hits the monster (AGI gives a chance to crit)
+  G.atkCd = Math.max(300, Math.floor(1000 / (st.atkSpeed || 1)));
+  // Player hits the monster. Roll the damage TYPE (precedence: excellent > crit > lucky > normal),
+  // each shown in its own colour.
   let pDmg = Math.max(1, Math.floor(st.baseDmg * (0.8 + Math.random() * 0.4)));
-  let crit = false;
-  if (Math.random() < st.crit) { pDmg = Math.floor(pDmg * 1.5); crit = true; }
+  let type = 'normal', color = '#ffe066', suffix = '';
+  if (Math.random() < st.excChance)       { pDmg = Math.floor(pDmg * 1.3); type = 'excellent'; color = '#5dff7a'; }
+  else if (Math.random() < st.crit)        { pDmg = Math.floor(pDmg * 1.5); type = 'critical';  color = '#ff9a1f'; suffix = '!'; }
+  else if (Math.random() < st.luckChance)  { pDmg = Math.floor(pDmg * 1.25); type = 'lucky';     color = '#5fd0ff'; }
   m.curHp -= pDmg;
-  addDmg(m.x, m.y - 10, crit ? pDmg + '!' : pDmg, crit ? '#ff9900' : '#ffff00');
-  // Monster strikes back -- AGI-based evade can make it MISS entirely
+  addDmg(m.x, m.y - 10, pDmg + suffix, color);
+  // Monster strikes back -- AGI-based evade can make it MISS; excellent armor reduces the rest.
   let mDmg = 0, dodged = false;
   if (Math.random() < st.evade) {
     dodged = true;
     addDmg(c.px, c.py - 10, 'MISS', '#88ddff');
   } else {
-    mDmg = Math.max(1, Math.floor(m.attack * (0.8 + Math.random() * 0.4) - st.defense * 0.5));
+    mDmg = Math.max(1, Math.floor((m.attack * (0.8 + Math.random() * 0.4) - st.defense * 0.5) * (1 - st.dmgReduce)));
     c.hp = Math.max(0, c.hp - mDmg);
     addDmg(c.px, c.py - 10, mDmg, '#ff4444');
   }
+  const tag = type !== 'normal' ? ' (' + type + ')' : '';
   gameLog(dodged
-    ? `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Dodged its attack.`
-    : `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Took ${mDmg} dmg.`, 'combat');
+    ? `Hit ${m.name} for ${pDmg}${tag}! Dodged its attack.`
+    : `Hit ${m.name} for ${pDmg}${tag}! Took ${mDmg} dmg.`, 'combat');
   if (m.curHp <= 0) { killMonster(m); }
   if (c.hp <= 0) { playerDied(); }
   updateUI();
@@ -631,21 +1092,27 @@ function killMonster(m) {
   c.exp += expG; c.zen += zenG;
   gameLog(`Killed ${m.name}! +${expG} EXP +${zenG} Zen`,'system');
   // Drops
-  (m.drops||[]).forEach(d => { if (Math.random() < d.chance) { const uid = Date.now().toString(36)+Math.random().toString(36).slice(2,6); G.inv.push({uid,itemId:d.id,equipped:0}); gameLog(`Loot: ${ITEMS[d.id].name}`,'loot'); }});
+  (m.drops||[]).forEach(d => { if (Math.random() < d.chance) {
+    const uid = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const li = Object.assign({uid, itemId:d.id, equipped:0}, rollItemOptions(d.id));
+    G.inv.push(li);
+    gameLog('Loot: ' + itemLabel(li) + (isExcellent(li) ? ' [Excellent]' : ''), 'loot');
+  }});
   // Level up
   const needed = expForLevel(c.level);
   if (c.exp >= needed) {
     c.exp -= needed; c.level++; c.statPts += 5;
     const cd = CLASS_DATA[c.cls];
     c.maxHp += cd.hpPerLevel; c.maxMp += cd.mpPerLevel;
-    c.hp = c.maxHp; c.mp = c.maxMp;
     gameLog(`LEVEL UP! Now level ${c.level}! +5 stat points`,'system');
+    if (G.autoLevel) autoAllocate();
+    c.hp = maxHpOf(c); c.mp = maxMpOf(c);
   }
   saveGame();
 }
 
 function playerDied() {
-  G.char.hp = Math.floor(G.char.maxHp * 0.5);
+  G.char.hp = Math.floor(maxHpOf(G.char) * 0.5);
   G.char.px = 130; G.char.py = 130;
   G.target = null; G.moveTo = null;
   gameLog('You died! Respawning in town...','combat');
@@ -660,8 +1127,11 @@ function handleClick(e) {
   const pt = (e.touches && e.touches[0]) ? e.touches[0]
            : (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0]
            : e;
-  const wx = (pt.clientX - rect.left + cam.x) / 4;
-  const wy = (pt.clientY - rect.top + cam.y) / 4;
+  // Screen to isometric world coords (inverse of toIso)
+  const screenX = pt.clientX - rect.left + cam.x;
+  const screenY = pt.clientY - rect.top + cam.y;
+  const wx = (screenX / ISO_SCALE + screenY / (ISO_SCALE * ISO_RATIO)) / 2;
+  const wy = (screenY / (ISO_SCALE * ISO_RATIO) - screenX / ISO_SCALE) / 2;
   // Check monster click
   for (const m of G.mobs) {
     if (!m.alive) continue;
@@ -682,70 +1152,268 @@ function handleClick(e) {
 
 <script>
 // ===== RENDERER =====
+// ===== ISOMETRIC 2.5D RENDERER =====
+// Converts world (wx, wy) to isometric screen coordinates.
+// Isometric: screen_x = (wx - wy) * tileW/2, screen_y = (wx + wy) * tileH/2
+const ISO_SCALE = 2.5; // world units → pixels multiplier
+const ISO_RATIO = 0.5; // Y squish for isometric (tan ~26.5°)
+function toIso(wx, wy) {
+  return { sx: (wx - wy) * ISO_SCALE, sy: (wx + wy) * ISO_SCALE * ISO_RATIO };
+}
 function getCamera() {
-  return { x: G.char.px*4 - canvas.width/2, y: G.char.py*4 - canvas.height/2 };
+  const iso = toIso(G.char.px, G.char.py);
+  return { x: iso.sx - canvas.width / 2, y: iso.sy - canvas.height / 2 };
 }
 
 function render() {
   const cam = getCamera();
   const c = G.char, map = G.map;
-  ctx.fillStyle = map.bg; ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Ground tiles
-  const ts = 32;
-  const sc = Math.floor(cam.x/ts), sr = Math.floor(cam.y/ts);
-  const ec = sc+Math.ceil(canvas.width/ts)+1, er = sr+Math.ceil(canvas.height/ts)+1;
-  for (let r=sr;r<er;r++) for (let cl=sc;cl<ec;cl++) {
-    if (cl<0||r<0||cl>=128||r>=128) continue;
-    const x=cl*ts-cam.x, y=r*ts-cam.y;
-    const v = G.tileVar[(r*128+cl)%G.tileVar.length];
-    ctx.fillStyle = adjColor(map.bg, v); ctx.fillRect(x,y,ts,ts);
-    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.strokeRect(x,y,ts,ts);
+  // Sky / background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  if (grad && grad.addColorStop) {
+    grad.addColorStop(0, '#0a0a1a'); grad.addColorStop(1, map.bg);
+    ctx.fillStyle = grad;
+  } else { ctx.fillStyle = map.bg; }
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Isometric ground tiles (diamond grid)
+  const tw = 40, th = 20; // tile diamond size in pixels
+  const startCol = Math.floor((cam.x - canvas.width) / tw) - 2;
+  const endCol = Math.ceil((cam.x + canvas.width * 2) / tw) + 2;
+  const startRow = Math.floor((cam.y - canvas.height) / (th)) - 2;
+  const endRow = Math.ceil((cam.y + canvas.height * 2) / (th)) + 2;
+  for (let r = startRow; r < endRow; r++) {
+    for (let cl = startCol; cl < endCol; cl++) {
+      // Convert iso grid back to world to check bounds
+      const worldX = (cl + r); const worldY = (r - cl);
+      if (worldX < 0 || worldY < 0 || worldX >= 256 || worldY >= 256) continue;
+      const sx = cl * tw - cam.x; const sy = r * th - cam.y;
+      if (sx < -tw * 2 || sx > canvas.width + tw * 2 || sy < -th * 2 || sy > canvas.height + th * 2) continue;
+      const v = G.tileVar[((worldX * 131 + worldY * 37) & 0xFFFF) % G.tileVar.length];
+      ctx.fillStyle = adjColor(map.bg, v);
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - th / 2);
+      ctx.lineTo(sx + tw / 2, sy);
+      ctx.lineTo(sx, sy + th / 2);
+      ctx.lineTo(sx - tw / 2, sy);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
   }
-  // Safe zone
-  if (map.safe) { const s=map.safe; ctx.fillStyle='rgba(100,200,100,0.06)'; ctx.fillRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); ctx.strokeStyle='rgba(100,200,100,0.25)'; ctx.strokeRect(s.x1*4-cam.x,s.y1*4-cam.y,(s.x2-s.x1)*4,(s.y2-s.y1)*4); }
-  // Portals
-  G.portalAnim += 0.05;
-  map.portals.forEach(p => { const sx=p.x*4-cam.x, sy=p.y*4-cam.y, gl=Math.sin(G.portalAnim)*0.3+0.7; ctx.beginPath(); ctx.arc(sx,sy,20,0,Math.PI*2); ctx.fillStyle=`rgba(100,150,255,${gl*0.4})`; ctx.fill(); ctx.strokeStyle=`rgba(150,200,255,${gl})`; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(p.label,sx,sy+30); });
-  // NPCs
-  map.npcs.forEach(n => { const sx=n.x*4-cam.x, sy=n.y*4-cam.y; ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2); ctx.fillStyle='#44aaff'; ctx.fill(); ctx.strokeStyle='#88ccff'; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle='#88ccff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(n.name,sx,sy-20); ctx.fillStyle='#ffff00'; ctx.font='bold 14px sans-serif'; ctx.fillText('!',sx,sy+5); });
-  // Monsters
-  G.mobs.forEach(m => { if (!m.alive) return; const sx=m.x*4-cam.x, sy=m.y*4-cam.y; if(sx<-40||sx>canvas.width+40||sy<-40||sy>canvas.height+40) return; ctx.beginPath(); ctx.arc(sx,sy,12,0,Math.PI*2); ctx.fillStyle=monColor(m.level); ctx.fill(); if(G.target===m.uid){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.stroke();} ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(m.name,sx,sy-18); const hp=m.curHp/m.hp; ctx.fillStyle='#333';ctx.fillRect(sx-15,sy-14,30,4); ctx.fillStyle=hp>0.5?'#0c0':hp>0.25?'#cc0':'#c00';ctx.fillRect(sx-15,sy-14,30*hp,4); });
-  // Companion "players" (multiplayer feel) - drawn like players with name + Lv.X
-  (G.companions||[]).forEach(comp => {
-    const cx2=comp.x*4-cam.x, cy2=comp.y*4-cam.y;
-    if(cx2<-40||cx2>canvas.width+40||cy2<-40||cy2>canvas.height+40) return;
-    if(comp.swing>0){ ctx.beginPath(); ctx.arc(cx2,cy2,18,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,150,0.5)'; ctx.lineWidth=2; ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(cx2,cy2,13,0,Math.PI*2); ctx.fillStyle=comp.color; ctx.fill(); ctx.strokeStyle='#9fd3ff'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.fillText('Lv.'+comp.level,cx2,cy2-30);
-    ctx.fillStyle='#9fd3ff'; ctx.font='bold 11px sans-serif'; ctx.fillText(comp.name,cx2,cy2-19);
+
+  // Safe zone (isometric diamond overlay)
+  if (map.safe) {
+    const s = map.safe;
+    const corners = [[s.x1,s.y1],[s.x2,s.y1],[s.x2,s.y2],[s.x1,s.y2]].map(([x,y])=>{const i=toIso(x,y);return[i.sx-cam.x,i.sy-cam.y];});
+    ctx.beginPath(); ctx.moveTo(corners[0][0],corners[0][1]);
+    corners.slice(1).forEach(([x,y])=>ctx.lineTo(x,y)); ctx.closePath();
+    ctx.fillStyle='rgba(100,200,100,0.06)'; ctx.fill();
+    ctx.strokeStyle='rgba(100,200,100,0.3)'; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  // Portals (animated glow diamonds)
+  G.portalAnim += 0.04;
+  map.portals.forEach(p => {
+    const iso = toIso(p.x, p.y);
+    const sx = iso.sx - cam.x, sy = iso.sy - cam.y;
+    const gl = Math.sin(G.portalAnim) * 0.3 + 0.7;
+    ctx.beginPath(); ctx.arc(sx, sy - 10, 16, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(80,140,255,${gl * 0.4})`; ctx.fill();
+    ctx.strokeStyle = `rgba(140,200,255,${gl})`; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#cef'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(p.label, sx, sy + 14);
   });
+
+  // Collect all drawable entities for depth sorting (painter's algorithm: higher Y = closer = drawn last)
+  const entities = [];
+  // NPCs
+  map.npcs.forEach(n => entities.push({ type: 'npc', wx: n.x, wy: n.y, data: n }));
+  // Monsters
+  G.mobs.forEach(m => { if (m.alive) entities.push({ type: 'mob', wx: m.x, wy: m.y, data: m }); });
+  // Companions
+  (G.companions || []).forEach(comp => entities.push({ type: 'comp', wx: comp.x, wy: comp.y, data: comp }));
   // Player
-  const px=c.px*4-cam.x, py=c.py*4-cam.y;
-  ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.fillStyle=CLASS_DATA[c.cls].color; ctx.fill(); ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#ffd700'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillText(c.name,px,py-20);
-  ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.fillText(c.level,px,py+4);
+  entities.push({ type: 'player', wx: c.px, wy: c.py, data: c });
+
+  // Sort by depth (wx + wy gives isometric depth)
+  entities.sort((a, b) => (a.wx + a.wy) - (b.wx + b.wy));
+
+  // Draw entities
+  entities.forEach(ent => {
+    const iso = toIso(ent.wx, ent.wy);
+    const sx = iso.sx - cam.x, sy = iso.sy - cam.y;
+    if (sx < -60 || sx > canvas.width + 60 || sy < -60 || sy > canvas.height + 60) return;
+
+    if (ent.type === 'npc') {
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Body (pixel-art NPC: blue robe)
+      drawPixelChar(sx, sy, '#44aaff', '#2266aa', 14);
+      // Name + exclamation
+      ctx.fillStyle = '#88ccff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(ent.data.name, sx, sy - 26);
+      ctx.fillStyle = '#ffff00'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('!', sx, sy - 14);
+    }
+    else if (ent.type === 'mob') {
+      const m = ent.data;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // Target ring
+      if (G.target === m.uid) {
+        ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(sx, sy + 2, 12, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Monster body (pixel-art: colored by level)
+      const mc = monColor(m.level);
+      drawPixelMob(sx, sy, mc, m.level);
+      // Name + HP bar
+      ctx.fillStyle = '#fff'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(m.name, sx, sy - 22);
+      const hp = m.curHp / m.hp;
+      ctx.fillStyle = '#222'; ctx.fillRect(sx - 14, sy - 18, 28, 3);
+      ctx.fillStyle = hp > 0.5 ? '#0c0' : hp > 0.25 ? '#cc0' : '#c00';
+      ctx.fillRect(sx - 14, sy - 18, 28 * hp, 3);
+    }
+    else if (ent.type === 'comp') {
+      const comp = ent.data;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+      // Swing effect
+      if (comp.swing > 0) {
+        ctx.strokeStyle = 'rgba(255,255,150,0.5)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sx, sy - 6, 14, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Body
+      drawPixelChar(sx, sy, comp.color, adjColor(comp.color, -0.3), 12);
+      // Name + Level
+      ctx.fillStyle = '#9fd3ff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(comp.name, sx, sy - 24);
+      ctx.fillStyle = '#fff'; ctx.font = '8px sans-serif';
+      ctx.fillText('Lv.' + comp.level, sx, sy - 16);
+    }
+    else if (ent.type === 'player') {
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(sx, sy + 3, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Player body (slightly larger, golden outline)
+      drawPixelChar(sx, sy, CLASS_DATA[c.cls].color, adjColor(CLASS_DATA[c.cls].color, -0.3), 15);
+      // Golden highlight ring
+      ctx.strokeStyle = 'rgba(255,215,0,0.5)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(sx, sy + 2, 11, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      // Name + Level
+      ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(c.name, sx, sy - 28);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('Lv.' + c.level, sx, sy - 18);
+    }
+  });
+
   // Move indicator
-  if (G.moveTo) { const tx=G.moveTo.x*4-cam.x, ty=G.moveTo.y*4-cam.y; ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke(); }
-  // Damage numbers
-  G.dmgNums = G.dmgNums.filter(d => { d.life--; d.dy-=0.5; const sx=d.x*4-cam.x, sy=d.y*4-cam.y+d.dy; ctx.globalAlpha=d.life/60; ctx.fillStyle=d.color; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.fillText(d.val,sx,sy); ctx.globalAlpha=1; return d.life>0; });
+  if (G.moveTo) {
+    const mIso = toIso(G.moveTo.x, G.moveTo.y);
+    const mx = mIso.sx - cam.x, my = mIso.sy - cam.y;
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(mx, my, 6, 3, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Damage numbers (float up in isometric space)
+  G.dmgNums = G.dmgNums.filter(d => {
+    d.life--; d.dy -= 0.6;
+    const dIso = toIso(d.x, d.y);
+    const sx = dIso.sx - cam.x, sy = dIso.sy - cam.y + d.dy;
+    ctx.globalAlpha = d.life / 60;
+    ctx.fillStyle = d.color; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(d.val, sx, sy);
+    ctx.globalAlpha = 1;
+    return d.life > 0;
+  });
 }
 
-function adjColor(hex, amt) { const n=parseInt(hex.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.max(0,Math.min(255,Math.floor(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.floor(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.floor(b*(1+amt)))); return `rgb(${r},${g},${b})`; }
+// Pixel-art character sprite (head + body + legs, ~15px tall)
+function drawPixelChar(sx, sy, bodyColor, darkColor, h) {
+  const s = h / 15; // scale factor
+  // Legs
+  ctx.fillStyle = darkColor;
+  ctx.fillRect(sx - 3 * s, sy - 2 * s, 2 * s, 4 * s);
+  ctx.fillRect(sx + 1 * s, sy - 2 * s, 2 * s, 4 * s);
+  // Body
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(sx - 4 * s, sy - 8 * s, 8 * s, 7 * s);
+  // Shoulders
+  ctx.fillRect(sx - 5 * s, sy - 8 * s, 2 * s, 3 * s);
+  ctx.fillRect(sx + 3 * s, sy - 8 * s, 2 * s, 3 * s);
+  // Head
+  ctx.fillStyle = '#ffe0b0';
+  ctx.fillRect(sx - 3 * s, sy - 12 * s, 6 * s, 4 * s);
+  // Hair/helm top
+  ctx.fillStyle = darkColor;
+  ctx.fillRect(sx - 3 * s, sy - 13 * s, 6 * s, 2 * s);
+}
+
+// Pixel-art monster sprite (varies by level tier)
+function drawPixelMob(sx, sy, color, level) {
+  const dark = adjColor(color, -0.3);
+  if (level <= 5) {
+    // Small critter (spider/bug shape)
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 5, sy - 6, 10, 6);
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 7, sy - 4, 3, 2); ctx.fillRect(sx + 4, sy - 4, 3, 2); // legs
+    ctx.fillRect(sx - 6, sy - 7, 2, 2); ctx.fillRect(sx + 4, sy - 7, 2, 2); // eyes
+  } else if (level <= 12) {
+    // Medium humanoid
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 3, sy - 2, 2, 4); ctx.fillRect(sx + 1, sy - 2, 2, 4);
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 4, sy - 9, 8, 7);
+    ctx.fillStyle = '#ddd';
+    ctx.fillRect(sx - 2, sy - 12, 4, 3); // head
+  } else if (level <= 20) {
+    // Large beast
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 7, sy - 10, 14, 10);
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 8, sy - 13, 4, 4); // horn/head
+    ctx.fillRect(sx + 4, sy - 13, 4, 4);
+    ctx.fillRect(sx - 6, sy - 1, 3, 3); ctx.fillRect(sx + 3, sy - 1, 3, 3); // legs
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(sx - 3, sy - 8, 2, 2); ctx.fillRect(sx + 1, sy - 8, 2, 2); // eyes
+  } else {
+    // Boss / elite (bigger, more detail)
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 9, sy - 14, 18, 14);
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - 7, sy - 12, 14, 10);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(sx - 4, sy - 16, 8, 3); // crown
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(sx - 3, sy - 9, 2, 2); ctx.fillRect(sx + 1, sy - 9, 2, 2); // glowing eyes
+    ctx.fillStyle = dark;
+    ctx.fillRect(sx - 8, sy - 1, 3, 4); ctx.fillRect(sx + 5, sy - 1, 3, 4); // legs
+  }
+}
+
+function adjColor(hex, amt) { let h=hex; if(h.startsWith('rgb')){const m=h.match(/(\d+)/g);if(m)h='#'+m.slice(0,3).map(v=>(+v).toString(16).padStart(2,'0')).join('');else return h;} const n=parseInt(h.replace('#',''),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.max(0,Math.min(255,Math.floor(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.floor(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.floor(b*(1+amt)))); return `rgb(${r},${g},${b})`; }
 function monColor(lv) { if(lv<=3) return '#88cc44'; if(lv<=8) return '#cc8844'; if(lv<=15) return '#cc4444'; if(lv<=22) return '#8844cc'; return '#cc44cc'; }
 function addDmg(x,y,val,color) { G.dmgNums.push({x,y,val,color,life:60,dy:0}); }
 
 // ===== UI =====
 function updateUI() {
   const c = G.char, needed = expForLevel(c.level);
+  const st = computeStats(c, G.inv);
+  const mhp = st.maxHp || c.maxHp, mmp = st.maxMp || c.maxMp;
   document.getElementById('ui-charname').textContent = c.name;
   document.getElementById('ui-level').textContent = 'Lv.'+c.level;
   document.getElementById('ui-class').textContent = CLASS_DATA[c.cls].name;
   document.getElementById('ui-map').textContent = G.map.name;
   document.getElementById('ui-zen').textContent = '💰 '+c.zen.toLocaleString()+' Zen';
-  document.getElementById('hp-bar').style.width = (c.hp/c.maxHp*100)+'%';
-  document.getElementById('hp-text').textContent = c.hp+'/'+c.maxHp;
-  document.getElementById('mp-bar').style.width = (c.mp/c.maxMp*100)+'%';
-  document.getElementById('mp-text').textContent = c.mp+'/'+c.maxMp;
+  document.getElementById('hp-bar').style.width = Math.max(0, Math.min(100, c.hp/mhp*100))+'%';
+  document.getElementById('hp-text').textContent = c.hp+'/'+mhp;
+  document.getElementById('mp-bar').style.width = Math.max(0, Math.min(100, c.mp/mmp*100))+'%';
+  document.getElementById('mp-text').textContent = c.mp+'/'+mmp;
   document.getElementById('exp-bar').style.width = (c.exp/needed*100)+'%';
   document.getElementById('exp-text').textContent = c.exp+'/'+needed;
 }
@@ -763,8 +1431,9 @@ function gameLog(msg, type) {
 
 function doRest() {
   const c = G.char;
-  c.hp = Math.min(c.maxHp, c.hp + Math.floor(c.maxHp*0.15));
-  c.mp = Math.min(c.maxMp, c.mp + Math.floor(c.maxMp*0.15));
+  const mhp = maxHpOf(c), mmp = maxMpOf(c);
+  c.hp = Math.min(mhp, c.hp + Math.floor(mhp*0.15));
+  c.mp = Math.min(mmp, c.mp + Math.floor(mmp*0.15));
   gameLog('Resting... recovered HP/MP','system');
   updateUI(); saveGame();
 }
@@ -792,21 +1461,110 @@ function togglePanel(type) {
   panel.classList.remove('hidden');
   if (type === 'inv') renderInventory();
   else if (type === 'stats') renderStats();
+  else if (type === 'admin') renderAdmin();
+}
+
+// ----- Item display helpers -----
+function itemLabel(i) {
+  const it = ITEMS[i.itemId]; if (!it) return '???';
+  let n = it.name;
+  if (i.plus) n += ' +' + i.plus;
+  if (i.lucky) n += ' +Luck';
+  if (i.skill) n += ' +Skill';
+  return n;
+}
+function itemColor(i) {
+  const it = ITEMS[i.itemId];
+  if (isExcellent(i)) return '#5dff7a';
+  if (i && i.lucky) return '#5fd0ff';
+  if (it && it.type === 'misc') return '#c98bff';
+  return '#fff';
+}
+function itemSummary(i) {
+  const it = ITEMS[i.itemId]; if (!it) return '';
+  const p = [];
+  if (it.attack) p.push('ATK ' + (it.attack + (i.plus||0)*3 + (i.add||0)*4));
+  if (it.magic) p.push('MAG ' + it.magic);
+  if (it.defense) p.push('DEF ' + (it.defense + (i.plus||0)*2 + (i.add||0)*4));
+  if (it.healHp) p.push('+' + it.healHp + ' HP');
+  if (it.healMp) p.push('+' + it.healMp + ' MP');
+  if (i.skill) p.push('Skill');
+  if (i.lucky) p.push('Luck');
+  if (i.exc && i.exc.length) p.push('Exc x' + i.exc.length);
+  return p.join(' · ') || (it.desc || '');
+}
+// Build the attribute popup for an item (itemId + optional options object)
+function detailHTML(itemId, o) {
+  const it = ITEMS[itemId]; o = o || {};
+  if (!it) return '';
+  const exc = o.exc || [];
+  const titleCol = exc.length ? '#5dff7a' : (o.lucky ? '#5fd0ff' : '#ffd700');
+  const name = it.name + (o.plus ? ' +' + o.plus : '') + (o.lucky ? ' +Luck' : '') + (o.skill ? ' +Skill' : '');
+  let h = `<div style="text-align:center;color:${titleCol};font-weight:bold;font-size:16px;margin-bottom:6px;">${name}</div>`;
+  if (it.img) h += `<div style="text-align:center;margin:8px 0;"><img src="${it.img}" alt="${it.name}" style="max-width:64px;max-height:128px;image-rendering:pixelated;" onerror="this.style.display='none'"></div>`;
+  h += `<div style="color:#888;font-size:12px;text-align:center;margin-bottom:10px;">${it.desc||''}</div>`;
+  const rows = [];
+  if (it.type) rows.push(['Type', it.type + (it.slot && it.slot !== it.type ? ' / ' + it.slot : '')]);
+  if (it.attack) rows.push(['Attack', '+' + (it.attack + (o.plus||0)*3 + (o.add||0)*4)]);
+  if (it.magic) rows.push(['Magic', '+' + it.magic]);
+  if (it.defense) rows.push(['Defense', '+' + (it.defense + (o.plus||0)*2 + (o.add||0)*4)]);
+  if (it.healHp) rows.push(['Restores HP', '+' + it.healHp]);
+  if (it.healMp) rows.push(['Restores MP', '+' + it.healMp]);
+  if (o.add) rows.push(['Additional Option', it.slot === 'weapon' ? '+' + (o.add*4) + ' damage' : '+' + (o.add*4) + ' defense']);
+  if (it.price) rows.push(['Value', it.price.toLocaleString() + ' Zen']);
+  const h2 = rows.map(r => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">${r[0]}</span><span style="color:#fff;">${r[1]}</span></div>`).join('');
+  let ex = '';
+  if (o.skill) ex += `<div style="color:#ffcc66;font-size:12px;padding:3px 0;">★ Skill</div>`;
+  if (o.lucky) ex += `<div style="color:#5fd0ff;font-size:12px;padding:3px 0;">✦ Luck (+5% Critical, enables Lucky damage)</div>`;
+  if (exc.length) {
+    ex += `<div style="color:#5dff7a;font-size:12px;margin-top:6px;font-weight:bold;">Excellent Options</div>`;
+    exc.forEach(code => { ex += `<div style="color:#5dff7a;font-size:12px;padding:2px 0 2px 8px;">• ${EXC_LABELS[code]||code}</div>`; });
+  }
+  return h + h2 + ex + `<div style="text-align:center;margin-top:12px;"><button onclick="document.getElementById('item-modal').classList.add('hidden')" style="padding:6px 16px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;">Close</button></div>`;
+}
+function showItemDetail(uid) {
+  const i = G.inv.find(x => x.uid === uid); if (!i) return;
+  document.getElementById('item-modal-body').innerHTML = detailHTML(i.itemId, i);
+  document.getElementById('item-modal').classList.remove('hidden');
+}
+function showShopDetail(itemId) {
+  document.getElementById('item-modal-body').innerHTML = detailHTML(itemId, {});
+  document.getElementById('item-modal').classList.remove('hidden');
 }
 
 function renderInventory() {
-  const equipped = G.inv.filter(i => i.equipped);
+  const SLOTS = ['weapon','helmet','armor','pants','gloves','boots','shield','wings'];
+  const SLOT_LABELS = {weapon:'🗡️ Weapon',helmet:'⛑️ Helm',armor:'🛡️ Armor',pants:'👖 Pants',gloves:'🧤 Gloves',boots:'👢 Boots',shield:'🛡️ Shield',wings:'🪽 Wings'};
+  // Build a map of slot -> equipped item
+  const slotMap = {};
+  G.inv.filter(i=>i.equipped).forEach(i => { const it=ITEMS[i.itemId]; if(it&&it.slot) slotMap[it.slot]=i; });
   const bag = G.inv.filter(i => !i.equipped);
-  let html = `<h3 style="color:#ffd700;margin-bottom:12px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
-  html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Equipped:</div>';
-  equipped.forEach(i => { const it = ITEMS[i.itemId]; html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #ffd700;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name} <small style="color:#888;">(${it.slot||''})</small></span><button onclick="unequipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;">Unequip</button></div>`; });
-  html += '<div style="color:#aaa;font-size:12px;margin:10px 0 6px;">Bag:</div>';
-  if (!bag.length) html += '<div style="color:#666;font-size:12px;">Empty</div>';
+
+  let html = `<h3 style="color:#ffd700;margin-bottom:8px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
+  // ===== EQUIPMENT SLOT GRID =====
+  html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px;">`;
+  SLOTS.forEach(slot => {
+    const i = slotMap[slot];
+    const it = i ? ITEMS[i.itemId] : null;
+    const border = i ? (isExcellent(i)?'#5dff7a':(i.lucky?'#5fd0ff':'#ffd700')) : '#333';
+    const bg = i ? '#1a1a2e' : '#111118';
+    const img = (it && it.img) ? `<img src="${it.img}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">` : `<span style="font-size:20px;opacity:0.3;">${SLOT_LABELS[slot].split(' ')[0]}</span>`;
+    const click = i ? `onclick="showItemDetail('${i.uid}')"` : '';
+    const label = i ? `<span style="color:${itemColor(i)};font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${itemLabel(i)}</span>` : `<span style="color:#555;font-size:9px;">${slot}</span>`;
+    const unequipBtn = i ? `<span onclick="event.stopPropagation();unequipItem('${i.uid}')" style="position:absolute;top:1px;right:2px;color:#f66;font-size:10px;cursor:pointer;" title="Unequip">✕</span>` : '';
+    html += `<div ${click} style="position:relative;background:${bg};border:1px solid ${border};border-radius:6px;padding:4px;text-align:center;cursor:${i?'pointer':'default'};min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">${unequipBtn}${img}${label}</div>`;
+  });
+  html += `</div>`;
+
+  // ===== BAG =====
+  html += `<div style="color:#aaa;font-size:11px;margin:6px 0 4px;">Bag (${bag.length} items):</div>`;
+  if (!bag.length) html += '<div style="color:#555;font-size:11px;padding:8px;text-align:center;">Empty — kill monsters for loot!</div>';
   bag.forEach(i => { const it = ITEMS[i.itemId]; let btns = '';
-    if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;margin-left:4px;">Equip</button>`;
-    if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:4px;">Use</button>`;
-    btns += `<button onclick="sellItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:4px;">Sell</button>`;
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small></span>${btns}</div>`;
+    if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:3px;cursor:pointer;margin-left:3px;">Equip</button>`;
+    if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:3px;">Use</button>`;
+    btns += `<button onclick="sellItem('${i.uid}')" style="padding:2px 6px;font-size:10px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:3px;">Sell</button>`;
+    const ic = it.img ? `<img src="${it.img}" style="width:24px;height:24px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" onerror="this.style.display='none'">` : '';
+    html += `<div style="display:flex;align-items:center;gap:5px;padding:4px;margin:3px 0;background:#12121e;border:1px solid ${isExcellent(i)?'#3a6a3a':'#282830'};border-radius:4px;font-size:11px;">${ic}<span style="flex:1;cursor:pointer;overflow:hidden;" onclick="showItemDetail('${i.uid}')"><span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#666;">${it.slot||it.type||''}</small></span>${btns}</div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
@@ -818,6 +1576,11 @@ function renderStats() {
   document.getElementById('panel-right').innerHTML = `
     <h3 style="color:#ffd700;margin-bottom:12px;">Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>
     <div style="color:#ffd700;text-align:center;margin:10px 0;font-size:13px;">Available Points: ${c.statPts}</div>
+    <div style="display:flex;gap:8px;margin:8px 0;">
+      <button onclick="toggleAutoAttack();renderStats();" style="flex:1;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;border:1px solid ${G.autoAttack?'#6f6':'#444'};background:${G.autoAttack?'#1e3a1e':'#16213e'};color:${G.autoAttack?'#9f9':'#ccc'};">⚔️ Auto-Attack: ${G.autoAttack?'ON':'OFF'}</button>
+      <button onclick="toggleAutoLevel();" style="flex:1;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;border:1px solid ${G.autoLevel?'#6f6':'#444'};background:${G.autoLevel?'#1e3a1e':'#16213e'};color:${G.autoLevel?'#9f9':'#ccc'};">⬆️ Auto-Level: ${G.autoLevel?'ON':'OFF'}</button>
+    </div>
+    <div style="text-align:center;color:#888;font-size:11px;margin-bottom:4px;">${isRanged(c.cls)?'🏹 Ranged':'🗡️ Melee'} · Main stat: ${mainStatOf(c.cls).toUpperCase()} · Auto-Level adds to ${mainStatOf(c.cls).toUpperCase()}</div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Level</span><span style="color:#fff;font-weight:bold;">${c.level}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">EXP</span><span style="color:#fff;">${c.exp}/${needed}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Class</span><span style="color:#fff;">${CLASS_DATA[c.cls].name}</span></div>
@@ -829,13 +1592,16 @@ function renderStats() {
     <hr style="border-color:#222;margin:8px 0;">
     <div style="color:#ffcc66;font-size:12px;margin-bottom:4px;">Combat</div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Damage</span><span style="color:#fff;">${st.minDmg} - ${st.maxDmg}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Defense</span><span style="color:#fff;">${st.defense} <small style="color:#7fae7f;">(AGI +${st.agiDef})</small></span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Defense</span><span style="color:#fff;">${st.defense} <small style="color:#7fae7f;">(AGI +${st.agiDef}${st.mainDef?', '+mainStatOf(c.cls).toUpperCase()+' +'+st.mainDef:''})</small></span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Evade / Dodge</span><span style="color:#88ddff;">${(st.evade*100).toFixed(1)}% <small style="color:#5a8aa0;">(AGI)</small></span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Critical</span><span style="color:#ff9900;">${(st.crit*100).toFixed(1)}%</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Atk Speed</span><span style="color:#fff;">${st.atkSpeed.toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Critical</span><span style="color:#ff9a1f;">${(st.crit*100).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Lucky</span><span style="color:#5fd0ff;">${(st.luckChance*100).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Excellent</span><span style="color:#5dff7a;">${(st.excChance*100).toFixed(1)}%</span></div>
+    ${st.dmgReduce?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Dmg Reduce</span><span style="color:#fff;">${(st.dmgReduce*100).toFixed(0)}%</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Atk Speed</span><span style="color:#fff;">${st.atkSpeed.toFixed(2)} <small style="color:#888;">${isRanged(c.cls)?'(ranged)':'(melee)'}</small></span></div>
     <hr style="border-color:#222;margin:8px 0;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${c.maxHp}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${c.maxMp}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${st.maxHp||c.maxHp}${st.excHpPct?` <small style="color:#5dff7a;">(+${Math.round(st.excHpPct*100)}%)</small>`:''}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${st.maxMp||c.maxMp}${st.excMpPct?` <small style="color:#5dff7a;">(+${Math.round(st.excMpPct*100)}%)</small>`:''}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;"><span style="color:#aaa;">Zen</span><span style="color:#ffcc00;">${c.zen.toLocaleString()}</span></div>
   `;
 }
@@ -873,8 +1639,8 @@ function useItem(uid) {
   const idx = G.inv.findIndex(i=>i.uid===uid);
   if (idx < 0) return;
   const it = ITEMS[G.inv[idx].itemId];
-  if (it.healHp) G.char.hp = Math.min(G.char.maxHp, G.char.hp + it.healHp);
-  if (it.healMp) G.char.mp = Math.min(G.char.maxMp, G.char.mp + it.healMp);
+  if (it.healHp) G.char.hp = Math.min(maxHpOf(G.char), G.char.hp + it.healHp);
+  if (it.healMp) G.char.mp = Math.min(maxMpOf(G.char), G.char.mp + it.healMp);
   G.inv.splice(idx, 1);
   gameLog(`Used ${it.name}`,'system');
   renderInventory(); updateUI(); saveGame();
@@ -899,8 +1665,9 @@ function openShop(shopId, npcName) {
   panel.classList.remove('hidden');
   let html = `<h3 style="color:#ffd700;margin-bottom:12px;">${npcName} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
   items.forEach(itemId => { const it = ITEMS[itemId];
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;">
-      <span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
+    const ic = it.img ? `<img src="${it.img}" style="width:32px;height:32px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">` : '';
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:12px;">
+      ${ic}<span style="flex:1;cursor:pointer;" onclick="showShopDetail('${itemId}')">${it.name}<br><small style="color:#9aa;">${itemSummary({itemId})}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
       <button onclick="buyItem('${itemId}')" style="padding:4px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:3px;cursor:pointer;font-size:12px;">Buy</button>
     </div>`;
   });

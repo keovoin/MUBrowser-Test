@@ -107,6 +107,22 @@ Download `docs/index.html` and double-click it. It opens in any browser and work
 - Persists between browser sessions
 - Each account has separate save data
 
+### Accounts & Playing on Multiple Devices
+> ⚠️ The hosted single-file game (`docs/index.html`) stores accounts in your browser's
+> **localStorage**, which is **per-device / per-browser**. An account created on your PC
+> does **not** automatically exist on your phone.
+
+To play the **same** character on another device:
+1. On the device where your character lives, go to **Select Character → 📤 Export account** and copy the code.
+2. On the other device, on the login screen tap **📥 Import account from another device**, paste the code, and Import.
+3. Log in with your username/password — your characters and items are now there.
+
+**Want fully automatic cross-device login instead?** That needs a shared server. This repo
+already includes a zero-dependency Node backend (`backend/`, JWT auth + JSON-file DB).
+Deploy it to a host with a **persistent disk** (e.g. Render, Railway, Fly.io — *not*
+Vercel/Netlify, whose filesystems are ephemeral), then have the static game talk to it.
+(The automatic-sync client is not wired into `docs/index.html` yet — see the open items.)
+
 ---
 
 ## 🎯 How to Play
