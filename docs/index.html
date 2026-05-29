@@ -760,6 +760,52 @@ function itemIconHtml(itemId){
   if (!url) return '';
   return `<img class="item-img" src="${url}" alt="" loading="lazy" onerror="this.style.display='none'">`;
 }
+
+// Item detail tooltip popup (used when tapping equipped items in the slot grid)
+function showItemTooltip(uid) {
+  const inst = G.inv.find(i => i.uid === uid);
+  if (!inst) return;
+  const it = ITEMS[inst.itemId];
+  if (!it) return;
+  const url = itemImgUrl(inst.itemId);
+  const col = itemColor(inst);
+  let h = `<div style="text-align:center;margin-bottom:8px;">`;
+  if (url) h += `<img src="${url}" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'"><br>`;
+  h += `<span style="color:${col};font-weight:bold;font-size:15px;">${itemDisplayName(inst)}</span></div>`;
+  h += `<div style="color:#8b7355;font-size:12px;text-align:center;margin-bottom:8px;">${it.desc||''}</div>`;
+  const rows = [];
+  if (it.type) rows.push(['Type', it.type + (it.slot ? ' / ' + it.slot : '')]);
+  if (it.attack) rows.push(['Attack', '+' + (it.attack + (inst.plus||0)*1.5 + (inst.addOpt||0))]);
+  if (it.magic) rows.push(['Magic', '+' + it.magic]);
+  if (it.defense) rows.push(['Defense', '+' + (it.defense + Math.round((inst.plus||0)*1.5) + (inst.addOpt||0))]);
+  if (it.healHp) rows.push(['Restores HP', '+' + it.healHp]);
+  if (it.healMp) rows.push(['Restores MP', '+' + it.healMp]);
+  if (inst.plus) rows.push(['Upgrade', '+' + inst.plus]);
+  if (inst.addOpt) rows.push(['Additional Option', '+' + inst.addOpt]);
+  if (it.price) rows.push(['Value', (it.price||0).toLocaleString() + ' Zen']);
+  h += rows.map(r => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #221c33;font-size:12px;"><span style="color:#8b7355;">${r[0]}</span><span style="color:#ddd;">${r[1]}</span></div>`).join('');
+  if (inst.luck) h += `<div style="color:#5aa0ff;font-size:11px;padding:3px 0;">✦ +Luck</div>`;
+  if (inst.exc && inst.exc.length) {
+    h += `<div style="color:#46e07a;font-size:11px;margin-top:4px;font-weight:bold;">Excellent Options</div>`;
+    inst.exc.forEach(o => { h += `<div style="color:#46e07a;font-size:11px;padding:2px 0 2px 8px;">• ${o}</div>`; });
+  }
+  h += `<div style="text-align:center;margin-top:10px;"><button onclick="this.closest('[id=item-tip-modal]').style.display='none'" style="padding:6px 14px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:12px;">Close</button></div>`;
+  // Create or reuse modal
+  let modal = document.getElementById('item-tip-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'item-tip-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;z-index:500;';
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    const inner = document.createElement('div');
+    inner.id = 'item-tip-body';
+    inner.style.cssText = 'margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:16px;min-width:220px;max-width:88vw;max-height:80dvh;overflow-y:auto;';
+    modal.appendChild(inner);
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  document.getElementById('item-tip-body').innerHTML = h;
+}
 </script>
 
 
@@ -2691,7 +2737,7 @@ function renderAdminPanel(){
   const accounts = getAccounts();
   const chars = getChars();
   const escAttr = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  let html = `<div class="admin-itemids"><b style="color:#8b7355;">Valid item IDs:</b> ${Object.keys(ITEMS).join(', ')}</div>`;
+  let html = '';
   html += `<div class="admin-note">You are signed in as <b style="color:#ffd700;">${currentUser}</b> (${(currentAccount()||{}).role||'?'}). Admins manage everyone; GMs manage players only.</div>`;
   if (!accounts.length) { html += '<p style="color:#6b5b3a;">No accounts found.</p>'; }
   accounts.forEach(a => {
