@@ -431,43 +431,116 @@ const CLASS_DATA = {
   fairy_elf: { name:'Fairy Elf', desc:'Agile archer', baseHp:90, baseMp:60, baseStr:18, baseAgi:28, baseVit:18, baseEne:20, hpPerVit:2.5, mpPerEne:2, hpPerLevel:5, mpPerLevel:4, dmgPerStr:0.5, dmgPerAgi:1.0, speed:1.3, startItems:['short_bow','vine_armor','small_hp_potion','small_hp_potion','small_hp_potion'], color:'#22cc22' }
 };
 
+const _I='https://raw.githubusercontent.com/r00tmebaby/DT-Web-2.0-MuOnline-CMS-All-Seasons/master/imgs/items/';
 const ITEMS = {
-  // Swords -> Dark Knight only. reqLevel/reqStr scale with price/power.
-  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
-  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger',reqClass:['dark_knight'],reqLevel:6,reqStr:18},
-  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade',reqClass:['dark_knight'],reqLevel:24,reqStr:32},
-  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
-  // Staves -> Dark Wizard only. reqEne scales with magic power.
-  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
-  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff',reqClass:['dark_wizard'],reqLevel:15,reqEne:22},
-  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff',reqClass:['dark_wizard'],reqLevel:30,reqEne:40},
-  // Bows -> Fairy Elf only. reqAgi scales with the draw weight.
-  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
-  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow',reqClass:['fairy_elf'],reqLevel:12,reqAgi:22},
-  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow',reqClass:['fairy_elf'],reqLevel:30,reqAgi:40},
-  // Armor: heavy plate -> Dark Knight (reqStr), robes -> Dark Wizard (reqEne), light -> Fairy Elf (reqAgi)
-  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
-  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales',reqClass:['dark_knight'],reqLevel:20,reqStr:30},
-  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
-  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
-  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor',reqClass:['dark_wizard'],reqLevel:18,reqEne:25},
-  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
-  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk',reqClass:['fairy_elf'],reqLevel:18,reqAgi:25},
-  // Shields & helmets -> Dark Knight only (reqStr)
-  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield',reqClass:['dark_knight'],reqLevel:4,reqStr:12},
-  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler',reqClass:['dark_knight'],reqLevel:18,reqStr:25},
-  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
-  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm',reqClass:['dark_knight'],reqLevel:14,reqStr:20},
-  // Boots -> any class (no reqClass); kept light for everyone
-  leather_boots:{name:'Leather Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Basic boots'},
-  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots',reqLevel:14},
-  small_hp_potion:{name:'Small HP Potion',type:'consumable',healHp:50,price:50,desc:'Restores 50 HP'},
-  medium_hp_potion:{name:'Medium HP Potion',type:'consumable',healHp:150,price:200,desc:'Restores 150 HP'},
-  large_hp_potion:{name:'Large HP Potion',type:'consumable',healHp:400,price:600,desc:'Restores 400 HP'},
-  small_mp_potion:{name:'Small MP Potion',type:'consumable',healMp:30,price:60,desc:'Restores 30 MP'},
-  medium_mp_potion:{name:'Medium MP Potion',type:'consumable',healMp:100,price:250,desc:'Restores 100 MP'},
-  jewel_of_bless:{name:'Jewel of Bless',type:'misc',price:5000,desc:'Rare enchanting jewel'},
-  jewel_of_soul:{name:'Jewel of Soul',type:'misc',price:5000,desc:'Soul energy jewel'}
+  // ===== SWORDS (Dark Knight) =====
+  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword',img:_I+'0/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger',img:_I+'0/1.png',reqClass:['dark_knight'],reqLevel:6,reqStr:18},
+  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade',img:_I+'0/2.png',reqClass:['dark_knight'],reqLevel:24,reqStr:32},
+  katana:{name:'Katana',type:'weapon',slot:'weapon',attack:26,price:3500,desc:'Eastern curved blade',img:_I+'0/3.png',reqClass:['dark_knight'],reqLevel:36,reqStr:42},
+  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade',img:_I+'0/4.png',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
+  sword_of_assassin:{name:'Sword of Assassin',type:'weapon',slot:'weapon',attack:38,price:7000,desc:'Silent killer blade',img:_I+'0/5.png',reqClass:['dark_knight'],reqLevel:64,reqStr:60},
+  legendary_sword:{name:'Legendary Sword',type:'weapon',slot:'weapon',attack:46,price:12000,desc:'Legendary weapon of heroes',img:_I+'0/6.png',reqClass:['dark_knight'],reqLevel:80,reqStr:75},
+  heliacal_sword:{name:'Heliacal Sword',type:'weapon',slot:'weapon',attack:56,price:20000,desc:'Sun-forged ancient blade',img:_I+'0/7.png',reqClass:['dark_knight'],reqLevel:100,reqStr:90},
+  double_blade:{name:'Double Blade',type:'weapon',slot:'weapon',attack:64,price:30000,desc:'Twin-edged destruction',img:_I+'0/8.png',reqClass:['dark_knight'],reqLevel:120,reqStr:110},
+  lightning_sword:{name:'Lightning Sword',type:'weapon',slot:'weapon',attack:72,price:45000,desc:'Crackling with thunder',img:_I+'0/9.png',reqClass:['dark_knight'],reqLevel:140,reqStr:130},
+  // ===== AXES (Dark Knight) =====
+  small_axe:{name:'Small Axe',type:'weapon',slot:'weapon',attack:8,price:300,desc:'Light hatchet',img:_I+'1/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:5},
+  hand_axe:{name:'Hand Axe',type:'weapon',slot:'weapon',attack:14,price:700,desc:'One-handed axe',img:_I+'1/1.png',reqClass:['dark_knight'],reqLevel:10,reqStr:20},
+  double_axe:{name:'Double Axe',type:'weapon',slot:'weapon',attack:22,price:1800,desc:'Heavy double-head',img:_I+'1/2.png',reqClass:['dark_knight'],reqLevel:28,reqStr:35},
+  tomahawk:{name:'Tomahawk',type:'weapon',slot:'weapon',attack:30,price:3200,desc:'Throwing axe',img:_I+'1/3.png',reqClass:['dark_knight'],reqLevel:44,reqStr:48},
+  elven_axe:{name:'Elven Axe',type:'weapon',slot:'weapon',attack:36,price:5500,desc:'Elven-forged waraxe',img:_I+'1/4.png',reqClass:['dark_knight'],reqLevel:60,reqStr:58},
+  battle_axe:{name:'Battle Axe',type:'weapon',slot:'weapon',attack:44,price:9000,desc:'Massive two-hand axe',img:_I+'1/5.png',reqClass:['dark_knight'],reqLevel:80,reqStr:72},
+  nikea_axe:{name:'Nikea Axe',type:'weapon',slot:'weapon',attack:52,price:16000,desc:'Demon-slayer axe',img:_I+'1/6.png',reqClass:['dark_knight'],reqLevel:100,reqStr:88},
+  // ===== MACES (Dark Knight) =====
+  mace:{name:'Mace',type:'weapon',slot:'weapon',attack:10,price:400,desc:'Blunt mace',img:_I+'2/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:8},
+  morning_star:{name:'Morning Star',type:'weapon',slot:'weapon',attack:18,price:1200,desc:'Spiked flail',img:_I+'2/1.png',reqClass:['dark_knight'],reqLevel:18,reqStr:28},
+  flail:{name:'Flail',type:'weapon',slot:'weapon',attack:26,price:2600,desc:'Chain flail',img:_I+'2/2.png',reqClass:['dark_knight'],reqLevel:34,reqStr:40},
+  great_hammer:{name:'Great Hammer',type:'weapon',slot:'weapon',attack:34,price:4800,desc:'Earth-shaking hammer',img:_I+'2/3.png',reqClass:['dark_knight'],reqLevel:52,reqStr:55},
+  crystal_morning_star:{name:'Crystal Morning Star',type:'weapon',slot:'weapon',attack:42,price:8500,desc:'Enchanted crystal mace',img:_I+'2/4.png',reqClass:['dark_knight'],reqLevel:72,reqStr:68},
+  // ===== SPEARS (Dark Knight) =====
+  spear:{name:'Spear',type:'weapon',slot:'weapon',attack:9,price:350,desc:'Simple spear',img:_I+'3/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:6},
+  dragon_lance:{name:'Dragon Lance',type:'weapon',slot:'weapon',attack:24,price:2800,desc:'Dragon-scale tipped',img:_I+'3/1.png',reqClass:['dark_knight'],reqLevel:30,reqStr:36},
+  giant_trident:{name:'Giant Trident',type:'weapon',slot:'weapon',attack:36,price:6000,desc:'Three-pronged trident',img:_I+'3/2.png',reqClass:['dark_knight'],reqLevel:56,reqStr:55},
+  serpent_spear:{name:'Serpent Spear',type:'weapon',slot:'weapon',attack:48,price:14000,desc:'Venomous serpent lance',img:_I+'3/3.png',reqClass:['dark_knight'],reqLevel:90,reqStr:80},
+  // ===== BOWS (Fairy Elf) =====
+  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow',img:_I+'4/0.png',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
+  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow',img:_I+'4/1.png',reqClass:['fairy_elf'],reqLevel:12,reqAgi:22},
+  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow',img:_I+'4/2.png',reqClass:['fairy_elf'],reqLevel:30,reqAgi:40},
+  battle_bow:{name:'Battle Bow',type:'weapon',slot:'weapon',attack:32,price:4200,desc:'War-grade composite bow',img:_I+'4/3.png',reqClass:['fairy_elf'],reqLevel:46,reqAgi:52},
+  tiger_bow:{name:'Tiger Bow',type:'weapon',slot:'weapon',attack:40,price:7500,desc:'Fierce tiger-sinew bow',img:_I+'4/4.png',reqClass:['fairy_elf'],reqLevel:64,reqAgi:66},
+  silver_bow:{name:'Silver Bow',type:'weapon',slot:'weapon',attack:50,price:13000,desc:'Moonsilver enchanted bow',img:_I+'4/5.png',reqClass:['fairy_elf'],reqLevel:86,reqAgi:82},
+  chaos_nature_bow:{name:'Chaos Nature Bow',type:'weapon',slot:'weapon',attack:60,price:22000,desc:'Bow infused with chaos',img:_I+'4/6.png',reqClass:['fairy_elf'],reqLevel:110,reqAgi:100},
+  crossbow:{name:'Crossbow',type:'weapon',slot:'weapon',attack:18,price:1100,desc:'Mechanical crossbow',img:_I+'4/7.png',reqClass:['fairy_elf'],reqLevel:20,reqAgi:30},
+  golden_crossbow:{name:'Golden Crossbow',type:'weapon',slot:'weapon',attack:36,price:5800,desc:'Gold-plated crossbow',img:_I+'4/8.png',reqClass:['fairy_elf'],reqLevel:54,reqAgi:58},
+  arquebus:{name:'Arquebus',type:'weapon',slot:'weapon',attack:48,price:11000,desc:'Early gunpowder weapon',img:_I+'4/9.png',reqClass:['fairy_elf'],reqLevel:80,reqAgi:76},
+  // ===== STAFFS (Dark Wizard) =====
+  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull',img:_I+'5/0.png',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
+  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff',img:_I+'5/1.png',reqClass:['dark_wizard'],reqLevel:15,reqEne:22},
+  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff',img:_I+'5/2.png',reqClass:['dark_wizard'],reqLevel:30,reqEne:40},
+  thunder_staff:{name:'Thunder Staff',type:'weapon',slot:'weapon',attack:10,magic:36,price:5500,desc:'Storm-calling staff',img:_I+'5/3.png',reqClass:['dark_wizard'],reqLevel:48,reqEne:55},
+  gorgon_staff:{name:'Gorgon Staff',type:'weapon',slot:'weapon',attack:12,magic:44,price:9000,desc:'Petrifying gaze staff',img:_I+'5/4.png',reqClass:['dark_wizard'],reqLevel:66,reqEne:70},
+  legendary_staff:{name:'Legendary Staff',type:'weapon',slot:'weapon',attack:14,magic:54,price:15000,desc:'Staff of ancient power',img:_I+'5/5.png',reqClass:['dark_wizard'],reqLevel:88,reqEne:88},
+  staff_of_resurrection:{name:'Staff of Resurrection',type:'weapon',slot:'weapon',attack:16,magic:64,price:25000,desc:'Revives fallen allies',img:_I+'5/6.png',reqClass:['dark_wizard'],reqLevel:110,reqEne:105},
+  chaos_lightning_staff:{name:'Chaos Lightning Staff',type:'weapon',slot:'weapon',attack:20,magic:76,price:40000,desc:'Ultimate chaos magic',img:_I+'5/7.png',reqClass:['dark_wizard'],reqLevel:135,reqEne:125},
+  // ===== SHIELDS (Dark Knight) =====
+  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield',img:_I+'6/0.png',reqClass:['dark_knight'],reqLevel:4,reqStr:12},
+  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler',img:_I+'6/1.png',reqClass:['dark_knight'],reqLevel:18,reqStr:25},
+  horn_shield:{name:'Horn Shield',type:'shield',slot:'shield',defense:11,price:2200,desc:'Horned beast shield',img:_I+'6/2.png',reqClass:['dark_knight'],reqLevel:30,reqStr:35},
+  kite_shield:{name:'Kite Shield',type:'shield',slot:'shield',defense:15,price:3800,desc:'Large kite shield',img:_I+'6/3.png',reqClass:['dark_knight'],reqLevel:44,reqStr:48},
+  skull_shield:{name:'Skull Shield',type:'shield',slot:'shield',defense:19,price:5500,desc:'Shield of skulls',img:_I+'6/4.png',reqClass:['dark_knight'],reqLevel:60,reqStr:60},
+  large_round_shield:{name:'Large Round Shield',type:'shield',slot:'shield',defense:23,price:8000,desc:'Heavy round shield',img:_I+'6/5.png',reqClass:['dark_knight'],reqLevel:78,reqStr:74},
+  dragon_slayer_shield:{name:'Dragon Slayer Shield',type:'shield',slot:'shield',defense:28,price:14000,desc:'Forged from dragon scale',img:_I+'6/6.png',reqClass:['dark_knight'],reqLevel:100,reqStr:92},
+  // ===== HELMETS =====
+  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm',img:_I+'7/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm',img:_I+'7/1.png',reqClass:['dark_knight'],reqLevel:14,reqStr:20},
+  brass_helm:{name:'Brass Helm',type:'helmet',slot:'helmet',defense:9,price:1500,desc:'Heavy brass helm',img:_I+'7/2.png',reqClass:['dark_knight'],reqLevel:30,reqStr:34},
+  plate_helm:{name:'Plate Helm',type:'helmet',slot:'helmet',defense:13,price:3000,desc:'Full plate helm',img:_I+'7/3.png',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
+  dragon_helm:{name:'Dragon Helm',type:'helmet',slot:'helmet',defense:18,price:7000,desc:'Dragon-forged helm',img:_I+'7/4.png',reqClass:['dark_knight'],reqLevel:80,reqStr:72},
+  pad_helm:{name:'Pad Helm',type:'helmet',slot:'helmet',defense:3,price:300,desc:'Padded wizard cap',img:_I+'7/5.png',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
+  bone_helm:{name:'Bone Helm',type:'helmet',slot:'helmet',defense:7,price:1000,desc:'Bone wizard crown',img:_I+'7/6.png',reqClass:['dark_wizard'],reqLevel:18,reqEne:22},
+  sphinx_helm:{name:'Sphinx Helm',type:'helmet',slot:'helmet',defense:12,price:3200,desc:'Enigmatic sphinx mask',img:_I+'7/7.png',reqClass:['dark_wizard'],reqLevel:42,reqEne:45},
+  vine_helm:{name:'Vine Helm',type:'helmet',slot:'helmet',defense:3,price:300,desc:'Elven vine circlet',img:_I+'7/8.png',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
+  silk_helm:{name:'Silk Helm',type:'helmet',slot:'helmet',defense:6,price:900,desc:'Silken elf hood',img:_I+'7/9.png',reqClass:['fairy_elf'],reqLevel:18,reqAgi:22},
+  // ===== ARMOR =====
+  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather',img:_I+'8/0.png',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales',img:_I+'8/1.png',reqClass:['dark_knight'],reqLevel:20,reqStr:30},
+  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate',img:_I+'8/2.png',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
+  plate_armor:{name:'Plate Armor',type:'armor',slot:'armor',defense:30,price:8000,desc:'Full plate mail',img:_I+'8/3.png',reqClass:['dark_knight'],reqLevel:70,reqStr:68},
+  dragon_armor:{name:'Dragon Armor',type:'armor',slot:'armor',defense:40,price:18000,desc:'Dragon scale plate',img:_I+'8/4.png',reqClass:['dark_knight'],reqLevel:100,reqStr:92},
+  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes',img:_I+'8/5.png',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
+  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor',img:_I+'8/6.png',reqClass:['dark_wizard'],reqLevel:18,reqEne:25},
+  sphinx_armor:{name:'Sphinx Armor',type:'armor',slot:'armor',defense:16,price:3500,desc:'Enigmatic robes',img:_I+'8/7.png',reqClass:['dark_wizard'],reqLevel:40,reqEne:42},
+  legendary_armor:{name:'Legendary Armor',type:'armor',slot:'armor',defense:26,price:10000,desc:'Legendary wizard robe',img:_I+'8/8.png',reqClass:['dark_wizard'],reqLevel:72,reqEne:70},
+  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor',img:_I+'8/9.png',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
+  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk',img:_I+'8/10.png',reqClass:['fairy_elf'],reqLevel:18,reqAgi:25},
+  wind_armor:{name:'Wind Armor',type:'armor',slot:'armor',defense:18,price:4200,desc:'Wind-blessed armor',img:_I+'8/11.png',reqClass:['fairy_elf'],reqLevel:42,reqAgi:45},
+  spirit_armor:{name:'Spirit Armor',type:'armor',slot:'armor',defense:28,price:12000,desc:'Spirit-infused mail',img:_I+'8/12.png',reqClass:['fairy_elf'],reqLevel:72,reqAgi:70},
+  // ===== BOOTS (any class) =====
+  leather_boots:{name:'Leather Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Basic boots',img:_I+'11/0.png'},
+  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots',img:_I+'11/1.png',reqLevel:14},
+  brass_boots:{name:'Brass Boots',type:'boots',slot:'boots',defense:8,price:1600,desc:'Heavy brass boots',img:_I+'11/2.png',reqLevel:30},
+  plate_boots:{name:'Plate Boots',type:'boots',slot:'boots',defense:12,price:3500,desc:'Plate greaves',img:_I+'11/3.png',reqLevel:50},
+  dragon_boots:{name:'Dragon Boots',type:'boots',slot:'boots',defense:16,price:7500,desc:'Dragon scale boots',img:_I+'11/4.png',reqLevel:80},
+  // ===== WINGS =====
+  wings_of_elf:{name:'Wings of Elf',type:'armor',slot:'armor',defense:12,attack:10,price:80000,desc:'Ethereal elf wings',img:_I+'12/0.png',reqClass:['fairy_elf'],reqLevel:180,reqAgi:120},
+  wings_of_heaven:{name:'Wings of Heaven',type:'armor',slot:'armor',defense:14,attack:14,price:90000,desc:'Angelic divine wings',img:_I+'12/1.png',reqClass:['dark_knight'],reqLevel:180,reqStr:120},
+  wings_of_satan:{name:'Wings of Satan',type:'armor',slot:'armor',defense:16,attack:18,magic:16,price:100000,desc:'Demonic dark wings',img:_I+'12/2.png',reqClass:['dark_wizard'],reqLevel:180,reqEne:120},
+  // ===== POTIONS =====
+  small_hp_potion:{name:'Small HP Potion',type:'consumable',healHp:50,price:50,desc:'Restores 50 HP',img:_I+'14/0.png'},
+  medium_hp_potion:{name:'Medium HP Potion',type:'consumable',healHp:150,price:200,desc:'Restores 150 HP',img:_I+'14/1.png'},
+  large_hp_potion:{name:'Large HP Potion',type:'consumable',healHp:400,price:600,desc:'Restores 400 HP',img:_I+'14/2.png'},
+  small_mp_potion:{name:'Small MP Potion',type:'consumable',healMp:30,price:60,desc:'Restores 30 MP',img:_I+'14/3.png'},
+  medium_mp_potion:{name:'Medium MP Potion',type:'consumable',healMp:100,price:250,desc:'Restores 100 MP',img:_I+'14/4.png'},
+  large_mp_potion:{name:'Large MP Potion',type:'consumable',healMp:300,price:700,desc:'Restores 300 MP',img:_I+'14/5.png'},
+  antidote:{name:'Antidote',type:'consumable',healHp:20,price:30,desc:'Cures poison',img:_I+'14/6.png'},
+  // ===== JEWELS / MISC =====
+  jewel_of_bless:{name:'Jewel of Bless',type:'misc',price:5000,desc:'Blesses items safely',img:_I+'14/13.png'},
+  jewel_of_soul:{name:'Jewel of Soul',type:'misc',price:5000,desc:'Adds soul to items',img:_I+'14/14.png'},
+  jewel_of_life:{name:'Jewel of Life',type:'misc',price:8000,desc:'Adds life option to items',img:_I+'14/16.png'},
+  jewel_of_chaos:{name:'Jewel of Chaos',type:'misc',price:10000,desc:'Used in chaos combinations',img:_I+'14/15.png'},
+  jewel_of_creation:{name:'Jewel of Creation',type:'misc',price:12000,desc:'Rare creation material',img:_I+'14/22.png'},
+  box_of_luck:{name:'Box of Luck',type:'misc',price:3000,desc:'Open for a random item',img:_I+'14/11.png'}
 };
 </script>
 
@@ -564,9 +637,9 @@ const MAPS = {};
 })();
 
 const SHOPS = {
-  shop_weapon:['short_sword','kris','rapier','blade','skull_staff','angelic_staff','serpent_staff','short_bow','bow','elven_bow'],
-  shop_armor:['leather_armor','scale_armor','brass_armor','pad_armor','bone_armor','vine_armor','silk_armor','small_shield','buckler','leather_helm','scale_helm','leather_boots','scale_boots'],
-  shop_potion:['small_hp_potion','medium_hp_potion','large_hp_potion','small_mp_potion','medium_mp_potion']
+  shop_weapon:['short_sword','kris','rapier','katana','blade','sword_of_assassin','small_axe','hand_axe','double_axe','tomahawk','mace','morning_star','flail','spear','dragon_lance','skull_staff','angelic_staff','serpent_staff','thunder_staff','gorgon_staff','short_bow','bow','elven_bow','battle_bow','tiger_bow','crossbow','golden_crossbow'],
+  shop_armor:['leather_armor','scale_armor','brass_armor','plate_armor','pad_armor','bone_armor','sphinx_armor','vine_armor','silk_armor','wind_armor','leather_helm','scale_helm','brass_helm','plate_helm','pad_helm','bone_helm','sphinx_helm','vine_helm','silk_helm','small_shield','buckler','horn_shield','kite_shield','skull_shield','leather_boots','scale_boots','brass_boots','plate_boots'],
+  shop_potion:['small_hp_potion','medium_hp_potion','large_hp_potion','small_mp_potion','medium_mp_potion','large_mp_potion','antidote']
 };
 
 // ===== ITEM ATTRIBUTE / DROP SYSTEM =====
@@ -622,14 +695,15 @@ function rollDrops(m){
   const lvl = m.level, boss = m.boss, mult = boss ? 3 : 1;
   // potion drop
   if (Math.random() < Math.min(0.9, 0.35*mult)) drops.push(makeInstance(pickPotion(lvl)));
-  // gear drops (bosses roll several times)
-  const gearChance = Math.min(0.6, (0.10 + lvl*0.002) * mult);
-  const rolls = boss ? 4 : 1;
+  // gear drops (bosses roll several times, regular mobs have decent chance)
+  const gearChance = Math.min(0.7, (0.15 + lvl*0.003) * mult);
+  const rolls = boss ? 5 : (lvl >= 40 ? 2 : 1);
   for (let r=0; r<rolls; r++){
     if (Math.random() < gearChance) drops.push(makeGearInstance(pickGear(lvl), lvl, boss));
   }
   // rare jewels
-  if (Math.random() < (boss?0.25:0.008)) drops.push(makeInstance(Math.random()<0.5?'jewel_of_bless':'jewel_of_soul'));
+  const jewels = ['jewel_of_bless','jewel_of_soul','jewel_of_life','jewel_of_chaos','jewel_of_creation'];
+  if (Math.random() < (boss?0.25:0.008)) drops.push(makeInstance(jewels[Math.floor(Math.random()*jewels.length)]));
   return drops;
 }
 
