@@ -1,0 +1,32 @@
+# Fly.io configuration for MU Online Browser Edition.
+# Edit `app` to your unique Fly app name (must be globally unique).
+app = "mu-browser-test"
+primary_region = "sin"  # Singapore. Change to your nearest: iad, lhr, fra, syd, nrt, etc.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  DATA_DIR = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"   # scale to zero when idle (saves money); wakes on request
+  auto_start_machines = true
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+# Persistent storage for accounts.json / characters.json.
+# Create once with:  fly volumes create mu_data --size 1 --region sin
+[mounts]
+  source = "mu_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

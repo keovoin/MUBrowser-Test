@@ -1,0 +1,8 @@
+.git
+node_modules
+data
+backend
+frontend
+*.md
+.github
+fly.toml
