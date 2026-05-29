@@ -130,6 +130,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #
 <div id="log-messages"></div>
 </div>
 <div id="panel-right" class="hidden" style="pointer-events:auto;position:absolute;top:40px;right:10px;width:320px;max-height:calc(100vh - 100px);background:rgba(14,14,30,0.95);border:1px solid #333;border-radius:8px;padding:16px;overflow-y:auto;"></div>
+<div id="item-modal" class="hidden" style="pointer-events:auto;position:absolute;inset:0;background:rgba(0,0,0,0.7);display:flex;z-index:200;" onclick="if(event.target===this)this.classList.add('hidden')">
+<div id="item-modal-body" style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:18px;min-width:240px;max-width:88vw;max-height:80vh;overflow:auto;"></div>
+</div>
 </div>
 </div>
 
@@ -366,7 +369,7 @@ function deleteChar(id) {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [] };
+let G = { char: null, inv: [], map: null, mobs: [], companions: [], target: null, moveTo: null, atkCd: 0, running: false, lastT: 0, dmgNums: [], portalAnim: 0, tileVar: [], autoAttack: false, autoLevel: false };
 let canvas, ctx;
 
 function enterGame(charId) {
@@ -414,6 +417,7 @@ function buildActions() {
   document.getElementById('ui-actions').innerHTML = `
     <button onclick="togglePanel('inv')" title="Inventory" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🎒</button>
     <button onclick="togglePanel('stats')" title="Stats" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">📊</button>
+    <button id="btn-auto-atk" onclick="toggleAutoAttack()" title="Auto-Attack (auto-target & fight)" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">⚔️</button>
     <button onclick="doRest()" title="Rest" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">💤</button>
     <button onclick="saveAndQuit()" title="Save & Quit" style="width:40px;height:40px;background:rgba(20,20,40,0.9);border:1px solid #444;border-radius:6px;font-size:18px;cursor:pointer;">🚪</button>
   `;
@@ -431,6 +435,19 @@ function gameLoop() {
 
 function update(dt) {
   const c = G.char;
+  // Auto-attack: automatically pick and chase the nearest monster (range depends on class)
+  if (G.autoAttack) {
+    let cur = G.target && G.mobs.find(x => x.uid === G.target);
+    if (!cur || !cur.alive) {
+      let best = null, bd = Infinity;
+      for (const m of G.mobs) { if (!m.alive) continue; const d = Math.hypot(m.x - c.px, m.y - c.py); if (d < bd) { bd = d; best = m; } }
+      if (best) { G.target = best.uid; cur = best; }
+    }
+    if (cur && cur.alive) {
+      const d = Math.hypot(cur.x - c.px, cur.y - c.py);
+      if (d >= attackRangeOf(c.cls)) G.moveTo = { x: cur.x, y: cur.y }; else G.moveTo = null;
+    }
+  }
   // Movement
   if (G.moveTo) {
     const dx = G.moveTo.x - c.px, dy = G.moveTo.y - c.py;
@@ -445,7 +462,7 @@ function update(dt) {
     const m = G.mobs.find(x => x.uid === G.target);
     if (m && m.alive) {
       const dx = m.x - c.px, dy = m.y - c.py;
-      if (Math.sqrt(dx*dx+dy*dy) < 30) { G.moveTo = null; doAttack(m); }
+      if (Math.sqrt(dx*dx+dy*dy) < attackRangeOf(c.cls)) { G.moveTo = null; doAttack(m); }
     } else { G.target = null; }
   }
   // Companion bots: follow the player, only engage monsters near the player
@@ -459,32 +476,140 @@ function update(dt) {
   });
 }
 
+// ===== ITEM OPTIONS / ATTRIBUTES =====
+// Owned item instances ({uid,itemId,equipped,...}) may carry extra attributes:
+//   plus  : upgrade level (+1..+15)        lucky : +Luck (crit + lucky damage)
+//   skill : weapon has a skill             add   : additional option (flat dmg/def)
+//   exc[] : "excellent" option codes (see below)
+const EXC_WEAPON = [
+  { code: 'excDmg',     label: 'Increase Damage +2%' },
+  { code: 'excDmgRate', label: 'Excellent Damage Rate +10%' },
+  { code: 'excSpeed',   label: 'Increase Attack Speed +10' },
+  { code: 'excLife',    label: 'Life after monster +HP' }
+];
+const EXC_ARMOR = [
+  { code: 'excHp',      label: 'Increase HP +4%' },
+  { code: 'excMp',      label: 'Increase Mana +4%' },
+  { code: 'excDefRate', label: 'Damage Decrease +4%' }
+];
+const EXC_LABELS = {};
+EXC_WEAPON.concat(EXC_ARMOR).forEach(e => { EXC_LABELS[e.code] = e.label; });
+
+// Roll random options for a looted (equippable) item.
+function rollItemOptions(itemId) {
+  const it = ITEMS[itemId];
+  const o = {};
+  if (!it || !it.slot) return o; // only equipment gets options
+  if (Math.random() < 0.5)  o.plus = 1 + Math.floor(Math.random() * 6);   // +1..+6
+  if (Math.random() < 0.2)  o.lucky = 1;
+  if (Math.random() < 0.15 && it.slot === 'weapon') o.skill = 1;
+  if (Math.random() < 0.25) o.add = 1 + Math.floor(Math.random() * 4);     // additional option
+  if (Math.random() < 0.18) {                                              // excellent (1-2 opts)
+    const pool = it.slot === 'weapon' ? EXC_WEAPON : EXC_ARMOR;
+    const count = 1 + Math.floor(Math.random() * 2);
+    const used = {}; o.exc = [];
+    for (let k = 0; k < count; k++) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if (used[pick.code]) continue; used[pick.code] = 1; o.exc.push(pick.code);
+    }
+  }
+  return o;
+}
+function isExcellent(i) { return !!(i && i.exc && i.exc.length); }
+
 // ===== DERIVED STATS =====
-// Centralised stat calculation. AGI now contributes to DEFENSE and to an
-// EVADE / dodge chance (so monster attacks can miss), in addition to attack.
+// Centralised stat calculation. AGI contributes to DEFENSE and to an EVADE / dodge
+// chance; equipped item options add damage, defense, crit, excellent/lucky chances,
+// attack speed and bonus max HP/MP.
 function computeStats(c, inv) {
   const cd = CLASS_DATA[c.cls] || {};
-  let weaponAtk = 0, armorDef = 0;
+  let weaponAtk = 0, armorDef = 0, weaponPlus = 0, armorPlus = 0, addDmgFlat = 0, addDefFlat = 0;
+  let excDmgPct = 0, excSpeed = 0, excHpPct = 0, excMpPct = 0, excDefPct = 0;
+  let excRateCount = 0, luckyCount = 0, skillCount = 0, hasExc = false;
   (inv || []).filter(i => i.equipped).forEach(i => {
     const it = ITEMS[i.itemId];
     if (!it) return;
     if (it.attack) weaponAtk += it.attack;
     if (it.defense) armorDef += it.defense;
+    const plus = i.plus || 0, add = i.add || 0;
+    if (it.slot === 'weapon') { weaponPlus += plus; addDmgFlat += add * 4; }
+    else if (it.slot) { armorPlus += plus; addDefFlat += add * 4; }
+    if (i.lucky) luckyCount++;
+    if (i.skill) skillCount++;
+    (i.exc || []).forEach(code => {
+      hasExc = true;
+      if (code === 'excDmg') excDmgPct += 0.02;
+      else if (code === 'excDmgRate') excRateCount++;
+      else if (code === 'excSpeed') excSpeed += 0.1;
+      else if (code === 'excHp') excHpPct += 0.04;
+      else if (code === 'excMp') excMpPct += 0.04;
+      else if (code === 'excDefRate') excDefPct += 0.04;
+    });
   });
-  // Outgoing damage (kept consistent with the original formula)
+  // Outgoing damage: stat + weapon + upgrade + additional option, then excellent %
   const statAtk = c.str * (cd.dmgPerStr || 1) + c.agi * (cd.dmgPerAgi || 0.3);
-  const baseDmg = statAtk + weaponAtk;
+  const baseDmg = (statAtk + weaponAtk + weaponPlus * 3 + addDmgFlat) * (1 + excDmgPct);
   const minDmg = Math.max(1, Math.floor(baseDmg * 0.8));
   const maxDmg = Math.max(1, Math.floor(baseDmg * 1.2));
-  // AGI -> Defense (added on top of equipped armor)
-  const agiDef = Math.floor(c.agi / 4);
-  const defense = armorDef + agiDef;
-  // AGI -> Evade / Dodge chance (0..60%), scales with AGI and a little with level
+  // AGI + armor + upgrade + additional option -> Defense
+  const agiDef = Math.floor(c.agi / 4);                 // AGI is the PRIMARY defense source (all classes)
+  // The class main stat gives a SMALLER defense bonus: STR for Dark Knight, ENE for Dark Wizard.
+  // (Elf's main stat is AGI, already counted above.)
+  const mainStat = mainStatOf(c.cls);
+  const mainDef = mainStat === 'agi' ? 0 : Math.floor((c[mainStat] || 0) / 12);
+  const defense = armorDef + agiDef + mainDef + armorPlus * 2 + addDefFlat;
+  // AGI -> Evade / Dodge chance (0..60%)
   const evade = Math.min(0.6, (c.agi + (c.level || 1) * 0.5) / 600);
-  // AGI -> attack speed and a small crit chance
-  const atkSpeed = (cd.speed || 1) + c.agi * 0.01;
-  const crit = Math.min(0.5, c.agi / 600);
-  return { weaponAtk, armorDef, baseDmg, minDmg, maxDmg, agiDef, defense, evade, atkSpeed, crit };
+  // Attack speed (AGI + excellent speed), crit (AGI + luck)
+  const atkSpeed = (cd.speed || 1) + c.agi * 0.01 + excSpeed;
+  const crit = Math.min(0.6, c.agi / 600 + luckyCount * 0.05);
+  // Damage-type chances for the floating combat numbers
+  const excChance = hasExc ? Math.min(0.5, 0.02 + excRateCount * 0.10) : 0;
+  const luckChance = Math.min(0.4, luckyCount * 0.10);
+  const dmgReduce = Math.min(0.5, excDefPct);
+  // Excellent armor options raise effective max HP / MP
+  const maxHp = Math.floor((c.maxHp || 0) * (1 + excHpPct));
+  const maxMp = Math.floor((c.maxMp || 0) * (1 + excMpPct));
+  return { weaponAtk, armorDef, baseDmg, minDmg, maxDmg, agiDef, defense, evade, atkSpeed, crit,
+           excChance, luckChance, dmgReduce, maxHp, maxMp, excHpPct, excMpPct,
+           weaponPlus, armorPlus, addDmgFlat, addDefFlat, skillCount, luckyCount, mainDef };
+}
+
+// Effective max HP/MP (includes excellent option bonuses)
+function maxHpOf(c) { return computeStats(c, G.inv).maxHp || c.maxHp; }
+function maxMpOf(c) { return computeStats(c, G.inv).maxMp || c.maxMp; }
+
+// ===== AUTO-ATTACK & AUTO-LEVEL =====
+function mainStatOf(cls) { return cls === 'dark_wizard' ? 'ene' : (cls === 'fairy_elf' ? 'agi' : 'str'); }
+// Dark Knight is melee (short reach); Dark Wizard & Fairy Elf are ranged (longer reach).
+function isRanged(cls) { return cls === 'dark_wizard' || cls === 'fairy_elf'; }
+function attackRangeOf(cls) { return isRanged(cls) ? 46 : 22; }
+
+function toggleAutoAttack() {
+  G.autoAttack = !G.autoAttack;
+  const b = document.getElementById('btn-auto-atk');
+  if (b) { b.style.background = G.autoAttack ? '#1e3a1e' : 'rgba(20,20,40,0.9)'; b.style.borderColor = G.autoAttack ? '#6f6' : '#444'; }
+  gameLog('Auto-attack ' + (G.autoAttack ? 'ON' : 'OFF'), 'system');
+  if (currentPanel === 'stats') renderStats();
+}
+function toggleAutoLevel() {
+  G.autoLevel = !G.autoLevel;
+  gameLog('Auto-level ' + (G.autoLevel ? 'ON' : 'OFF'), 'system');
+  if (G.autoLevel) autoAllocate();
+  if (currentPanel === 'stats') renderStats();
+}
+function autoAllocate() {
+  const c = G.char;
+  if (c.statPts <= 0) return;
+  const main = mainStatOf(c.cls);
+  const n = c.statPts;
+  c[main] += n; c.statPts = 0;
+  const cd = CLASS_DATA[c.cls];
+  if (main === 'vit') c.maxHp = cd.baseHp + (c.vit - cd.baseVit) * cd.hpPerVit;
+  if (main === 'ene') c.maxMp = cd.baseMp + (c.ene - cd.baseEne) * cd.mpPerEne;
+  gameLog('Auto-allocated ' + n + ' point' + (n > 1 ? 's' : '') + ' to ' + main.toUpperCase(), 'system');
+  if (currentPanel === 'stats') renderStats();
+  updateUI(); saveGame();
 }
 
 // ===== COMPANION BOTS ("multiplayer feel") =====
@@ -597,26 +722,30 @@ function companionAttack(comp, m) {
 function doAttack(m) {
   const c = G.char;
   const st = computeStats(c, G.inv);
-  G.atkCd = Math.max(350, Math.floor(1000 / (st.atkSpeed || 1)));
-  // Player hits the monster (AGI gives a chance to crit)
+  G.atkCd = Math.max(300, Math.floor(1000 / (st.atkSpeed || 1)));
+  // Player hits the monster. Roll the damage TYPE (precedence: excellent > crit > lucky > normal),
+  // each shown in its own colour.
   let pDmg = Math.max(1, Math.floor(st.baseDmg * (0.8 + Math.random() * 0.4)));
-  let crit = false;
-  if (Math.random() < st.crit) { pDmg = Math.floor(pDmg * 1.5); crit = true; }
+  let type = 'normal', color = '#ffe066', suffix = '';
+  if (Math.random() < st.excChance)       { pDmg = Math.floor(pDmg * 1.3); type = 'excellent'; color = '#5dff7a'; }
+  else if (Math.random() < st.crit)        { pDmg = Math.floor(pDmg * 1.5); type = 'critical';  color = '#ff9a1f'; suffix = '!'; }
+  else if (Math.random() < st.luckChance)  { pDmg = Math.floor(pDmg * 1.25); type = 'lucky';     color = '#5fd0ff'; }
   m.curHp -= pDmg;
-  addDmg(m.x, m.y - 10, crit ? pDmg + '!' : pDmg, crit ? '#ff9900' : '#ffff00');
-  // Monster strikes back -- AGI-based evade can make it MISS entirely
+  addDmg(m.x, m.y - 10, pDmg + suffix, color);
+  // Monster strikes back -- AGI-based evade can make it MISS; excellent armor reduces the rest.
   let mDmg = 0, dodged = false;
   if (Math.random() < st.evade) {
     dodged = true;
     addDmg(c.px, c.py - 10, 'MISS', '#88ddff');
   } else {
-    mDmg = Math.max(1, Math.floor(m.attack * (0.8 + Math.random() * 0.4) - st.defense * 0.5));
+    mDmg = Math.max(1, Math.floor((m.attack * (0.8 + Math.random() * 0.4) - st.defense * 0.5) * (1 - st.dmgReduce)));
     c.hp = Math.max(0, c.hp - mDmg);
     addDmg(c.px, c.py - 10, mDmg, '#ff4444');
   }
+  const tag = type !== 'normal' ? ' (' + type + ')' : '';
   gameLog(dodged
-    ? `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Dodged its attack.`
-    : `Hit ${m.name} for ${pDmg}${crit ? ' (CRIT)' : ''}! Took ${mDmg} dmg.`, 'combat');
+    ? `Hit ${m.name} for ${pDmg}${tag}! Dodged its attack.`
+    : `Hit ${m.name} for ${pDmg}${tag}! Took ${mDmg} dmg.`, 'combat');
   if (m.curHp <= 0) { killMonster(m); }
   if (c.hp <= 0) { playerDied(); }
   updateUI();
@@ -631,21 +760,27 @@ function killMonster(m) {
   c.exp += expG; c.zen += zenG;
   gameLog(`Killed ${m.name}! +${expG} EXP +${zenG} Zen`,'system');
   // Drops
-  (m.drops||[]).forEach(d => { if (Math.random() < d.chance) { const uid = Date.now().toString(36)+Math.random().toString(36).slice(2,6); G.inv.push({uid,itemId:d.id,equipped:0}); gameLog(`Loot: ${ITEMS[d.id].name}`,'loot'); }});
+  (m.drops||[]).forEach(d => { if (Math.random() < d.chance) {
+    const uid = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const li = Object.assign({uid, itemId:d.id, equipped:0}, rollItemOptions(d.id));
+    G.inv.push(li);
+    gameLog('Loot: ' + itemLabel(li) + (isExcellent(li) ? ' [Excellent]' : ''), 'loot');
+  }});
   // Level up
   const needed = expForLevel(c.level);
   if (c.exp >= needed) {
     c.exp -= needed; c.level++; c.statPts += 5;
     const cd = CLASS_DATA[c.cls];
     c.maxHp += cd.hpPerLevel; c.maxMp += cd.mpPerLevel;
-    c.hp = c.maxHp; c.mp = c.maxMp;
     gameLog(`LEVEL UP! Now level ${c.level}! +5 stat points`,'system');
+    if (G.autoLevel) autoAllocate();
+    c.hp = maxHpOf(c); c.mp = maxMpOf(c);
   }
   saveGame();
 }
 
 function playerDied() {
-  G.char.hp = Math.floor(G.char.maxHp * 0.5);
+  G.char.hp = Math.floor(maxHpOf(G.char) * 0.5);
   G.char.px = 130; G.char.py = 130;
   G.target = null; G.moveTo = null;
   gameLog('You died! Respawning in town...','combat');
@@ -737,15 +872,17 @@ function addDmg(x,y,val,color) { G.dmgNums.push({x,y,val,color,life:60,dy:0}); }
 // ===== UI =====
 function updateUI() {
   const c = G.char, needed = expForLevel(c.level);
+  const st = computeStats(c, G.inv);
+  const mhp = st.maxHp || c.maxHp, mmp = st.maxMp || c.maxMp;
   document.getElementById('ui-charname').textContent = c.name;
   document.getElementById('ui-level').textContent = 'Lv.'+c.level;
   document.getElementById('ui-class').textContent = CLASS_DATA[c.cls].name;
   document.getElementById('ui-map').textContent = G.map.name;
   document.getElementById('ui-zen').textContent = '💰 '+c.zen.toLocaleString()+' Zen';
-  document.getElementById('hp-bar').style.width = (c.hp/c.maxHp*100)+'%';
-  document.getElementById('hp-text').textContent = c.hp+'/'+c.maxHp;
-  document.getElementById('mp-bar').style.width = (c.mp/c.maxMp*100)+'%';
-  document.getElementById('mp-text').textContent = c.mp+'/'+c.maxMp;
+  document.getElementById('hp-bar').style.width = Math.max(0, Math.min(100, c.hp/mhp*100))+'%';
+  document.getElementById('hp-text').textContent = c.hp+'/'+mhp;
+  document.getElementById('mp-bar').style.width = Math.max(0, Math.min(100, c.mp/mmp*100))+'%';
+  document.getElementById('mp-text').textContent = c.mp+'/'+mmp;
   document.getElementById('exp-bar').style.width = (c.exp/needed*100)+'%';
   document.getElementById('exp-text').textContent = c.exp+'/'+needed;
 }
@@ -763,8 +900,9 @@ function gameLog(msg, type) {
 
 function doRest() {
   const c = G.char;
-  c.hp = Math.min(c.maxHp, c.hp + Math.floor(c.maxHp*0.15));
-  c.mp = Math.min(c.maxMp, c.mp + Math.floor(c.maxMp*0.15));
+  const mhp = maxHpOf(c), mmp = maxMpOf(c);
+  c.hp = Math.min(mhp, c.hp + Math.floor(mhp*0.15));
+  c.mp = Math.min(mmp, c.mp + Math.floor(mmp*0.15));
   gameLog('Resting... recovered HP/MP','system');
   updateUI(); saveGame();
 }
@@ -794,19 +932,86 @@ function togglePanel(type) {
   else if (type === 'stats') renderStats();
 }
 
+// ----- Item display helpers -----
+function itemLabel(i) {
+  const it = ITEMS[i.itemId]; if (!it) return '???';
+  let n = it.name;
+  if (i.plus) n += ' +' + i.plus;
+  if (i.lucky) n += ' +Luck';
+  if (i.skill) n += ' +Skill';
+  return n;
+}
+function itemColor(i) {
+  const it = ITEMS[i.itemId];
+  if (isExcellent(i)) return '#5dff7a';
+  if (i && i.lucky) return '#5fd0ff';
+  if (it && it.type === 'misc') return '#c98bff';
+  return '#fff';
+}
+function itemSummary(i) {
+  const it = ITEMS[i.itemId]; if (!it) return '';
+  const p = [];
+  if (it.attack) p.push('ATK ' + (it.attack + (i.plus||0)*3 + (i.add||0)*4));
+  if (it.magic) p.push('MAG ' + it.magic);
+  if (it.defense) p.push('DEF ' + (it.defense + (i.plus||0)*2 + (i.add||0)*4));
+  if (it.healHp) p.push('+' + it.healHp + ' HP');
+  if (it.healMp) p.push('+' + it.healMp + ' MP');
+  if (i.skill) p.push('Skill');
+  if (i.lucky) p.push('Luck');
+  if (i.exc && i.exc.length) p.push('Exc x' + i.exc.length);
+  return p.join(' · ') || (it.desc || '');
+}
+// Build the attribute popup for an item (itemId + optional options object)
+function detailHTML(itemId, o) {
+  const it = ITEMS[itemId]; o = o || {};
+  if (!it) return '';
+  const exc = o.exc || [];
+  const titleCol = exc.length ? '#5dff7a' : (o.lucky ? '#5fd0ff' : '#ffd700');
+  const name = it.name + (o.plus ? ' +' + o.plus : '') + (o.lucky ? ' +Luck' : '') + (o.skill ? ' +Skill' : '');
+  let h = `<div style="text-align:center;color:${titleCol};font-weight:bold;font-size:16px;margin-bottom:6px;">${name}</div>`;
+  h += `<div style="color:#888;font-size:12px;text-align:center;margin-bottom:10px;">${it.desc||''}</div>`;
+  const rows = [];
+  if (it.type) rows.push(['Type', it.type + (it.slot && it.slot !== it.type ? ' / ' + it.slot : '')]);
+  if (it.attack) rows.push(['Attack', '+' + (it.attack + (o.plus||0)*3 + (o.add||0)*4)]);
+  if (it.magic) rows.push(['Magic', '+' + it.magic]);
+  if (it.defense) rows.push(['Defense', '+' + (it.defense + (o.plus||0)*2 + (o.add||0)*4)]);
+  if (it.healHp) rows.push(['Restores HP', '+' + it.healHp]);
+  if (it.healMp) rows.push(['Restores MP', '+' + it.healMp]);
+  if (o.add) rows.push(['Additional Option', it.slot === 'weapon' ? '+' + (o.add*4) + ' damage' : '+' + (o.add*4) + ' defense']);
+  if (it.price) rows.push(['Value', it.price.toLocaleString() + ' Zen']);
+  const h2 = rows.map(r => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">${r[0]}</span><span style="color:#fff;">${r[1]}</span></div>`).join('');
+  let ex = '';
+  if (o.skill) ex += `<div style="color:#ffcc66;font-size:12px;padding:3px 0;">★ Skill</div>`;
+  if (o.lucky) ex += `<div style="color:#5fd0ff;font-size:12px;padding:3px 0;">✦ Luck (+5% Critical, enables Lucky damage)</div>`;
+  if (exc.length) {
+    ex += `<div style="color:#5dff7a;font-size:12px;margin-top:6px;font-weight:bold;">Excellent Options</div>`;
+    exc.forEach(code => { ex += `<div style="color:#5dff7a;font-size:12px;padding:2px 0 2px 8px;">• ${EXC_LABELS[code]||code}</div>`; });
+  }
+  return h + h2 + ex + `<div style="text-align:center;margin-top:12px;"><button onclick="document.getElementById('item-modal').classList.add('hidden')" style="padding:6px 16px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;">Close</button></div>`;
+}
+function showItemDetail(uid) {
+  const i = G.inv.find(x => x.uid === uid); if (!i) return;
+  document.getElementById('item-modal-body').innerHTML = detailHTML(i.itemId, i);
+  document.getElementById('item-modal').classList.remove('hidden');
+}
+function showShopDetail(itemId) {
+  document.getElementById('item-modal-body').innerHTML = detailHTML(itemId, {});
+  document.getElementById('item-modal').classList.remove('hidden');
+}
+
 function renderInventory() {
   const equipped = G.inv.filter(i => i.equipped);
   const bag = G.inv.filter(i => !i.equipped);
   let html = `<h3 style="color:#ffd700;margin-bottom:12px;">Inventory <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
   html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Equipped:</div>';
-  equipped.forEach(i => { const it = ITEMS[i.itemId]; html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #ffd700;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name} <small style="color:#888;">(${it.slot||''})</small></span><button onclick="unequipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;">Unequip</button></div>`; });
+  equipped.forEach(i => { const it = ITEMS[i.itemId]; html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid ${itemColor(i)==='#fff'?'#ffd700':itemColor(i)};border-radius:4px;font-size:13px;"><span style="flex:1;cursor:pointer;" onclick="showItemDetail('${i.uid}')"><span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#888;">(${it.slot||''})</small><br><small style="color:#9aa;">${itemSummary(i)}</small></span><button onclick="unequipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;">Unequip</button></div>`; });
   html += '<div style="color:#aaa;font-size:12px;margin:10px 0 6px;">Bag:</div>';
   if (!bag.length) html += '<div style="color:#666;font-size:12px;">Empty</div>';
   bag.forEach(i => { const it = ITEMS[i.itemId]; let btns = '';
     if (it.slot) btns += `<button onclick="equipItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #444;color:#ccc;border-radius:3px;cursor:pointer;margin-left:4px;">Equip</button>`;
     if (it.type==='consumable') btns += `<button onclick="useItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #4a4;color:#8f8;border-radius:3px;cursor:pointer;margin-left:4px;">Use</button>`;
     btns += `<button onclick="sellItem('${i.uid}')" style="padding:3px 8px;font-size:11px;background:#16213e;border:1px solid #844;color:#f88;border-radius:3px;cursor:pointer;margin-left:4px;">Sell</button>`;
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;"><span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small></span>${btns}</div>`;
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;margin:4px 0;background:#1a1a2e;border:1px solid ${isExcellent(i)?'#3a6a3a':'#333'};border-radius:4px;font-size:13px;"><span style="flex:1;cursor:pointer;" onclick="showItemDetail('${i.uid}')"><span style="color:${itemColor(i)};">${itemLabel(i)}</span> <small style="color:#888;">(${it.slot||it.type||''})</small><br><small style="color:#9aa;">${itemSummary(i)}</small></span>${btns}</div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
@@ -818,6 +1023,11 @@ function renderStats() {
   document.getElementById('panel-right').innerHTML = `
     <h3 style="color:#ffd700;margin-bottom:12px;">Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>
     <div style="color:#ffd700;text-align:center;margin:10px 0;font-size:13px;">Available Points: ${c.statPts}</div>
+    <div style="display:flex;gap:8px;margin:8px 0;">
+      <button onclick="toggleAutoAttack();renderStats();" style="flex:1;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;border:1px solid ${G.autoAttack?'#6f6':'#444'};background:${G.autoAttack?'#1e3a1e':'#16213e'};color:${G.autoAttack?'#9f9':'#ccc'};">⚔️ Auto-Attack: ${G.autoAttack?'ON':'OFF'}</button>
+      <button onclick="toggleAutoLevel();" style="flex:1;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;border:1px solid ${G.autoLevel?'#6f6':'#444'};background:${G.autoLevel?'#1e3a1e':'#16213e'};color:${G.autoLevel?'#9f9':'#ccc'};">⬆️ Auto-Level: ${G.autoLevel?'ON':'OFF'}</button>
+    </div>
+    <div style="text-align:center;color:#888;font-size:11px;margin-bottom:4px;">${isRanged(c.cls)?'🏹 Ranged':'🗡️ Melee'} · Main stat: ${mainStatOf(c.cls).toUpperCase()} · Auto-Level adds to ${mainStatOf(c.cls).toUpperCase()}</div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Level</span><span style="color:#fff;font-weight:bold;">${c.level}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">EXP</span><span style="color:#fff;">${c.exp}/${needed}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Class</span><span style="color:#fff;">${CLASS_DATA[c.cls].name}</span></div>
@@ -829,13 +1039,16 @@ function renderStats() {
     <hr style="border-color:#222;margin:8px 0;">
     <div style="color:#ffcc66;font-size:12px;margin-bottom:4px;">Combat</div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Damage</span><span style="color:#fff;">${st.minDmg} - ${st.maxDmg}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Defense</span><span style="color:#fff;">${st.defense} <small style="color:#7fae7f;">(AGI +${st.agiDef})</small></span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Defense</span><span style="color:#fff;">${st.defense} <small style="color:#7fae7f;">(AGI +${st.agiDef}${st.mainDef?', '+mainStatOf(c.cls).toUpperCase()+' +'+st.mainDef:''})</small></span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Evade / Dodge</span><span style="color:#88ddff;">${(st.evade*100).toFixed(1)}% <small style="color:#5a8aa0;">(AGI)</small></span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Critical</span><span style="color:#ff9900;">${(st.crit*100).toFixed(1)}%</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Atk Speed</span><span style="color:#fff;">${st.atkSpeed.toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Critical</span><span style="color:#ff9a1f;">${(st.crit*100).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Lucky</span><span style="color:#5fd0ff;">${(st.luckChance*100).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Excellent</span><span style="color:#5dff7a;">${(st.excChance*100).toFixed(1)}%</span></div>
+    ${st.dmgReduce?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Dmg Reduce</span><span style="color:#fff;">${(st.dmgReduce*100).toFixed(0)}%</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">Atk Speed</span><span style="color:#fff;">${st.atkSpeed.toFixed(2)} <small style="color:#888;">${isRanged(c.cls)?'(ranged)':'(melee)'}</small></span></div>
     <hr style="border-color:#222;margin:8px 0;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${c.maxHp}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${c.maxMp}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">HP</span><span style="color:#fff;">${c.hp}/${st.maxHp||c.maxHp}${st.excHpPct?` <small style="color:#5dff7a;">(+${Math.round(st.excHpPct*100)}%)</small>`:''}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;font-size:13px;"><span style="color:#aaa;">MP</span><span style="color:#fff;">${c.mp}/${st.maxMp||c.maxMp}${st.excMpPct?` <small style="color:#5dff7a;">(+${Math.round(st.excMpPct*100)}%)</small>`:''}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;"><span style="color:#aaa;">Zen</span><span style="color:#ffcc00;">${c.zen.toLocaleString()}</span></div>
   `;
 }
@@ -873,8 +1086,8 @@ function useItem(uid) {
   const idx = G.inv.findIndex(i=>i.uid===uid);
   if (idx < 0) return;
   const it = ITEMS[G.inv[idx].itemId];
-  if (it.healHp) G.char.hp = Math.min(G.char.maxHp, G.char.hp + it.healHp);
-  if (it.healMp) G.char.mp = Math.min(G.char.maxMp, G.char.mp + it.healMp);
+  if (it.healHp) G.char.hp = Math.min(maxHpOf(G.char), G.char.hp + it.healHp);
+  if (it.healMp) G.char.mp = Math.min(maxMpOf(G.char), G.char.mp + it.healMp);
   G.inv.splice(idx, 1);
   gameLog(`Used ${it.name}`,'system');
   renderInventory(); updateUI(); saveGame();
@@ -900,7 +1113,7 @@ function openShop(shopId, npcName) {
   let html = `<h3 style="color:#ffd700;margin-bottom:12px;">${npcName} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#888;cursor:pointer;font-size:18px;">✕</button></h3>`;
   items.forEach(itemId => { const it = ITEMS[itemId];
     html += `<div style="display:flex;align-items:center;gap:8px;padding:8px;margin:4px 0;background:#1a1a2e;border:1px solid #333;border-radius:4px;font-size:13px;">
-      <span style="flex:1;">${it.name}<br><small style="color:#888;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
+      <span style="flex:1;cursor:pointer;" onclick="showShopDetail('${itemId}')">${it.name}<br><small style="color:#9aa;">${itemSummary({itemId})}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
       <button onclick="buyItem('${itemId}')" style="padding:4px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:3px;cursor:pointer;font-size:12px;">Buy</button>
     </div>`;
   });
