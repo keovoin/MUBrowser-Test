@@ -1259,6 +1259,7 @@ function buildActions() {
     <button class="action-btn" onclick="togglePanel('inv')" data-tip="Inventory" style="position:relative;">🎒</button>
     <button class="action-btn" onclick="togglePanel('stats')" data-tip="Stats" style="position:relative;">📊</button>
     <button class="action-btn" onclick="togglePanel('travel')" data-tip="Travel" style="position:relative;">🗺️</button>
+    <button class="action-btn" id="btn-afk" onclick="toggleAFK()" data-tip="AFK Mode" style="position:relative;font-size:11px;font-weight:bold;">AFK</button>
     <button class="action-btn" onclick="doRest()" data-tip="Rest" style="position:relative;">💤</button>
     <button class="action-btn" onclick="saveAndQuit()" data-tip="Save & Quit" style="position:relative;">🚪</button>
   `;
@@ -1272,6 +1273,42 @@ function gameLoop() {
   update(dt);
   render();
   requestAnimationFrame(gameLoop);
+}
+
+// ===== AFK MODE (auto-attack + auto-level + auto-potion) =====
+let afkMode = false;
+function toggleAFK() {
+  afkMode = !afkMode;
+  const b = document.getElementById('btn-afk');
+  if (b) { b.style.background = afkMode ? '#1e3a1e' : ''; b.style.borderColor = afkMode ? '#6f6' : ''; b.style.color = afkMode ? '#6f6' : ''; }
+  gameLog('AFK Mode ' + (afkMode ? 'ON — auto-attack + auto-level + auto-potion' : 'OFF'), 'system');
+}
+function afkTick(dt) {
+  if (!afkMode) return;
+  const c = G.char;
+  // Auto-target nearest alive monster
+  if (!G.target || !G.mobs.find(x => x.uid === G.target && x.alive)) {
+    let best = null, bd = Infinity;
+    for (const m of G.mobs) { if (!m.alive) continue; const d = Math.hypot(m.x - c.px, m.y - c.py); if (d < bd) { bd = d; best = m; } }
+    if (best) { G.target = best.uid; G.moveTo = { x: best.x, y: best.y }; }
+  } else {
+    const m = G.mobs.find(x => x.uid === G.target);
+    if (m && m.alive && Math.hypot(m.x - c.px, m.y - c.py) >= 28) G.moveTo = { x: m.x, y: m.y };
+  }
+  // Auto-potion when HP < 40%
+  const mhp = (G.stats && G.stats.maxHp) || c.maxHp || c.hp;
+  if (c.hp < mhp * 0.4) {
+    const pot = G.inv.find(i => !i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].healHp);
+    if (pot) useItem(pot.uid);
+  }
+  // Auto-level: allocate stat points to main stat
+  if (c.statPts > 0) {
+    const cd = CLASS_DATA[c.cls] || {};
+    const main = c.cls === 'dark_wizard' ? 'ene' : (c.cls === 'fairy_elf' ? 'agi' : 'str');
+    c[main] += c.statPts; c.statPts = 0;
+    recompute(); updateUI(); saveGame();
+    gameLog('AFK auto-allocated stats to ' + main.toUpperCase(), 'system');
+  }
 }
 
 function update(dt) {
@@ -1293,6 +1330,8 @@ function update(dt) {
   G.mobs.forEach(m => { if (!m.alive) { m.respawn -= dt; if (m.respawn <= 0) { m.alive = true; m.curHp = m.hp; m.x = m.spawnX; m.y = m.spawnY; } } });
   // Bot companion: follow player, auto-attack nearest monster in range (no PVP, invulnerable)
   updateBot(dt);
+  // AFK mode: auto-target, auto-potion, auto-level
+  afkTick(dt);
   G.map.portals.forEach(p => {
     const dx = p.x - c.px, dy = p.y - c.py;
     if (Math.sqrt(dx*dx+dy*dy) < 10) { c.mapId = p.to; c.px = p.tx; c.py = p.ty; loadMap(p.to); gameLog('Entered '+G.map.name+'!','system'); updateUI(); saveGame(); }
@@ -2692,16 +2731,39 @@ function adminGrantZen(charId){
 function adminGrantItem(charId){
   const found = adminFindManageableChar(charId); if (!found) return;
   const { ch } = found;
-  const raw = prompt('Item ID to grant to '+ch.name+' (e.g. blade, scale_armor, large_hp_potion):', '');
-  if (raw === null) return;
-  const id = raw.trim();
-  if (!ITEMS[id]) { alert('Unknown item ID: "'+id+'".'); return; }
+  // Show a searchable item picker modal instead of prompt()
+  let items = Object.keys(ITEMS);
+  let modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;z-index:9999;';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  let inner = `<div style="margin:auto;background:#14142a;border:1px solid #ffd700;border-radius:10px;padding:16px;width:90vw;max-width:420px;max-height:80vh;display:flex;flex-direction:column;">`;
+  inner += `<h3 style="color:#ffd700;margin-bottom:8px;">Give Item to ${ch.name}</h3>`;
+  inner += `<input type="text" id="admin-grant-search" placeholder="Search items..." oninput="adminFilterGrantItems()" style="width:100%;padding:8px;background:#111;border:1px solid #444;color:#fff;border-radius:4px;font-size:13px;margin-bottom:6px;">`;
+  inner += `<div id="admin-grant-list" style="flex:1;overflow-y:auto;border:1px solid #333;border-radius:4px;background:#0e0e1e;">`;
+  items.forEach(id => {
+    const it = ITEMS[id];
+    inner += `<div class="admin-grant-row" data-name="${it.name.toLowerCase()}" onclick="adminDoGrantItem('${charId}','${id}')" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid #1a1a2e;cursor:pointer;font-size:12px;" onmouseover="this.style.background='#1a2a3a'" onmouseout="this.style.background=''">`;
+    if (it.img) inner += `<img src="${it.img}" style="width:24px;height:24px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">`;
+    inner += `<span style="flex:1;color:#ddd;">${it.name}</span><small style="color:#888;">${it.type}${it.slot?' / '+it.slot:''}</small></div>`;
+  });
+  inner += `</div><button onclick="this.closest('div[style*=fixed]').remove()" style="margin-top:8px;padding:8px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;">Cancel</button></div>`;
+  modal.innerHTML = inner;
+  document.body.appendChild(modal);
+  setTimeout(() => { const s = document.getElementById('admin-grant-search'); if (s) s.focus(); }, 100);
+}
+function adminFilterGrantItems() {
+  const q = (document.getElementById('admin-grant-search') || {}).value || '';
+  const rows = document.querySelectorAll('.admin-grant-row');
+  rows.forEach(el => { el.style.display = (!q || el.dataset.name.includes(q.toLowerCase())) ? 'flex' : 'none'; });
+}
+function adminDoGrantItem(charId, itemId) {
   const inv = getInv(charId);
-  inv.push(makeInstance(id));
+  inv.push(makeInstance(itemId));
   saveInv(charId, inv);
-  // If this character is currently being played, reflect the grant live.
   if (G.char && G.char.id === charId) { G.inv = inv; recompute(); }
-  alert('Granted '+ITEMS[id].name+' to '+ch.name+'.');
+  gameLog('Admin: Gave ' + ITEMS[itemId].name + ' to character.', 'system');
+  // Close the modal
+  const m = document.querySelector('div[style*="z-index:9999"]'); if (m) m.remove();
   adminRefresh();
 }
 
