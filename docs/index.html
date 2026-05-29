@@ -1545,8 +1545,8 @@ function computeStats(char, inv){
   if (cls === 'dark_knight') baseDmg = char.str * 1.2 + char.agi * 0.2 + weaponAtk;
   else if (cls === 'dark_wizard') baseDmg = char.ene * 1.5 + char.agi * 0.2 + weaponAtk;
   else baseDmg = char.agi * 1.0 + char.str * 0.5 + weaponAtk;
-  let dmgMin = Math.max(1, Math.floor(baseDmg * 0.85));
-  let dmgMax = Math.max(dmgMin + 1, Math.floor(baseDmg * 1.15));
+  let dmgMin = Math.max(1, Math.floor(baseDmg * 0.85 * 1.3));
+  let dmgMax = Math.max(dmgMin + 1, Math.floor(baseDmg * 1.15 * 1.3));
   if (dmgPct) { dmgMin = Math.floor(dmgMin*(1+dmgPct/100)); dmgMax = Math.floor(dmgMax*(1+dmgPct/100)); }
   // === ATTACK SUCCESS RATE (PvM): Level*5 + AGI*1.5 + STR/4 ===
   const attackRate = Math.floor(char.level * 5 + char.agi * 1.5 + char.str / 4);
@@ -1597,8 +1597,8 @@ function doAttack(m) {
   if (Math.random() > hitChance) {
     // MISS
     addDmg(m.x, m.y - 10, 'MISS', '#888888');
-    // Monster still hits back
-    const mRaw = (m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)));
+    // Monster still hits back (bosses deal 30% less damage)
+    const mRaw = Math.floor(((m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)))) * (m.boss ? 0.7 : 1));
     // Player dodge check (defenseRate vs monster attack)
     if (Math.random() < Math.min(0.5, st.defenseRate / (st.defenseRate + m.level * 5 + 50))) {
       addDmg(c.px, c.py - 10, 'DODGE', '#88ddff');
@@ -1621,8 +1621,8 @@ function doAttack(m) {
   // Slash effect
   G.slashEffects.push({ x: m.x*4, y: m.y*4, life: 15, maxLife: 15, angle: Math.atan2(m.y-c.py, m.x-c.px) });
   G.particles.emit(m.x*4, m.y*4, 5, { speed:3, life:20, size:2, color: isCrit?'#ffddaa':'#ffff88', type:'spark' });
-  // === MONSTER HITS BACK ===
-  const mRaw = (m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)));
+  // === MONSTER HITS BACK (bosses deal 30% less) ===
+  const mRaw = Math.floor(((m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)))) * (m.boss ? 0.7 : 1));
   // Player dodge check
   if (Math.random() < Math.min(0.5, st.defenseRate / (st.defenseRate + m.level * 5 + 50))) {
     addDmg(c.px, c.py - 10, 'DODGE', '#88ddff');
