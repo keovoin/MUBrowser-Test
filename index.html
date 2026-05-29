@@ -359,6 +359,13 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
   padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 6px;
 }
 .stat-add-btn:hover { box-shadow: 0 0 8px rgba(255,215,0,0.5); }
+.stat-alloc { display: flex; gap: 4px; align-items: center; justify-content: flex-end; margin: 2px 0 8px; }
+.stat-alloc .stat-add-btn { margin-left: 0; padding: 3px 7px; }
+.stat-amt {
+  width: 48px; padding: 3px 5px; background: #0a0812; border: 1px solid #2a2040;
+  color: #e0d8c8; border-radius: 3px; font-size: 11px; font-family: 'MedievalSharp', serif;
+}
+.stat-amt:focus { border-color: #ffd700; outline: none; box-shadow: inset 0 0 8px rgba(255,215,0,0.12); }
 
 /* ===== ITEM IMAGES (loaded from external MU asset repo, falls back to text offline) ===== */
 .item-img {
@@ -425,29 +432,35 @@ const CLASS_DATA = {
 };
 
 const ITEMS = {
-  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword'},
-  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger'},
-  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade'},
-  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade'},
-  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull'},
-  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff'},
-  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff'},
-  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow'},
-  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow'},
-  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow'},
-  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather'},
-  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales'},
-  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate'},
-  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes'},
-  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor'},
-  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor'},
-  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk'},
-  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield'},
-  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler'},
-  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm'},
-  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm'},
+  // Swords -> Dark Knight only. reqLevel/reqStr scale with price/power.
+  short_sword:{name:'Short Sword',type:'weapon',slot:'weapon',attack:6,price:200,desc:'Basic short sword',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  kris:{name:'Kris',type:'weapon',slot:'weapon',attack:12,price:800,desc:'A curved dagger',reqClass:['dark_knight'],reqLevel:6,reqStr:18},
+  rapier:{name:'Rapier',type:'weapon',slot:'weapon',attack:20,price:2000,desc:'Thin sharp blade',reqClass:['dark_knight'],reqLevel:24,reqStr:32},
+  blade:{name:'Blade',type:'weapon',slot:'weapon',attack:32,price:5000,desc:'Heavy slashing blade',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
+  // Staves -> Dark Wizard only. reqEne scales with magic power.
+  skull_staff:{name:'Skull Staff',type:'weapon',slot:'weapon',attack:4,magic:8,price:200,desc:'Staff with skull',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
+  angelic_staff:{name:'Angelic Staff',type:'weapon',slot:'weapon',attack:6,magic:16,price:1000,desc:'Blessed staff',reqClass:['dark_wizard'],reqLevel:15,reqEne:22},
+  serpent_staff:{name:'Serpent Staff',type:'weapon',slot:'weapon',attack:8,magic:28,price:3000,desc:'Serpent motif staff',reqClass:['dark_wizard'],reqLevel:30,reqEne:40},
+  // Bows -> Fairy Elf only. reqAgi scales with the draw weight.
+  short_bow:{name:'Short Bow',type:'weapon',slot:'weapon',attack:8,price:200,desc:'Simple short bow',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
+  bow:{name:'Bow',type:'weapon',slot:'weapon',attack:14,price:900,desc:'Standard bow',reqClass:['fairy_elf'],reqLevel:12,reqAgi:22},
+  elven_bow:{name:'Elven Bow',type:'weapon',slot:'weapon',attack:24,price:2500,desc:'Elven crafted bow',reqClass:['fairy_elf'],reqLevel:30,reqAgi:40},
+  // Armor: heavy plate -> Dark Knight (reqStr), robes -> Dark Wizard (reqEne), light -> Fairy Elf (reqAgi)
+  leather_armor:{name:'Leather Armor',type:'armor',slot:'armor',defense:5,price:300,desc:'Basic leather',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  scale_armor:{name:'Scale Armor',type:'armor',slot:'armor',defense:12,price:1500,desc:'Metal scales',reqClass:['dark_knight'],reqLevel:20,reqStr:30},
+  brass_armor:{name:'Brass Armor',type:'armor',slot:'armor',defense:22,price:4000,desc:'Heavy brass plate',reqClass:['dark_knight'],reqLevel:50,reqStr:50},
+  pad_armor:{name:'Pad Armor',type:'armor',slot:'armor',defense:3,price:300,desc:'Light padded robes',reqClass:['dark_wizard'],reqLevel:1,reqEne:0},
+  bone_armor:{name:'Bone Armor',type:'armor',slot:'armor',defense:8,price:1200,desc:'Bone adorned armor',reqClass:['dark_wizard'],reqLevel:18,reqEne:25},
+  vine_armor:{name:'Vine Armor',type:'armor',slot:'armor',defense:4,price:300,desc:'Woven vine armor',reqClass:['fairy_elf'],reqLevel:1,reqAgi:0},
+  silk_armor:{name:'Silk Armor',type:'armor',slot:'armor',defense:10,price:1300,desc:'Lightweight silk',reqClass:['fairy_elf'],reqLevel:18,reqAgi:25},
+  // Shields & helmets -> Dark Knight only (reqStr)
+  small_shield:{name:'Small Shield',type:'shield',slot:'shield',defense:3,price:400,desc:'Wooden shield',reqClass:['dark_knight'],reqLevel:4,reqStr:12},
+  buckler:{name:'Buckler',type:'shield',slot:'shield',defense:7,price:1200,desc:'Metal buckler',reqClass:['dark_knight'],reqLevel:18,reqStr:25},
+  leather_helm:{name:'Leather Helm',type:'helmet',slot:'helmet',defense:2,price:200,desc:'Basic helm',reqClass:['dark_knight'],reqLevel:1,reqStr:0},
+  scale_helm:{name:'Scale Helm',type:'helmet',slot:'helmet',defense:5,price:800,desc:'Metal scale helm',reqClass:['dark_knight'],reqLevel:14,reqStr:20},
+  // Boots -> any class (no reqClass); kept light for everyone
   leather_boots:{name:'Leather Boots',type:'boots',slot:'boots',defense:2,price:200,desc:'Basic boots'},
-  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots'},
+  scale_boots:{name:'Scale Boots',type:'boots',slot:'boots',defense:4,price:700,desc:'Scale boots',reqLevel:14},
   small_hp_potion:{name:'Small HP Potion',type:'consumable',healHp:50,price:50,desc:'Restores 50 HP'},
   medium_hp_potion:{name:'Medium HP Potion',type:'consumable',healHp:150,price:200,desc:'Restores 150 HP'},
   large_hp_potion:{name:'Large HP Potion',type:'consumable',healHp:400,price:600,desc:'Restores 400 HP'},
@@ -677,6 +690,90 @@ function itemIconHtml(itemId){
 
 
 <script>
+// ===== ONLINE NET LAYER (additive, with offline fallback) =====
+// When the game is served over http/https AND /api/health responds ok we run in ONLINE
+// mode and talk to the backend for auth / ranking / live presence. When opened via file://
+// (or the server is unreachable) NET.online stays false and the game behaves exactly like
+// the original localStorage-only build. Every network call is wrapped in try/catch and is
+// fire-and-forget where possible, so a failed fetch can NEVER break the game loop.
+const NET = {
+  online: false,
+  token: null,
+  base: '',
+  username: null,
+  role: null,
+  presenceTimer: null,
+  pollTimer: null,
+  lastSync: 0,
+  async init() {
+    try {
+      // file:// has no origin server; never even attempt a fetch there.
+      if (typeof location === 'undefined' || location.protocol === 'file:') { this.online = false; return; }
+      const r = await fetch(this.base + '/api/health', { cache: 'no-store' });
+      if (!r.ok) { this.online = false; return; }
+      const j = await r.json();
+      this.online = !!(j && j.ok);
+    } catch (e) { this.online = false; }
+  },
+  async post(path, body) {
+    const r = await fetch(this.base + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    let data = {}; try { data = await r.json(); } catch (e) {}
+    return { ok: r.ok, status: r.status, data };
+  },
+  async get(path) {
+    const r = await fetch(this.base + path, { cache: 'no-store' });
+    let data = {}; try { data = await r.json(); } catch (e) {}
+    return { ok: r.ok, status: r.status, data };
+  }
+};
+
+// Mirror a server account locally so the existing localStorage-driven UI (char select,
+// ranking fallback, admin panel) keeps working even while we are online.
+function ensureLocalAccount(username, password, role) {
+  const accounts = getAccounts();
+  let a = accounts.find(x => x && x.username === username);
+  if (!a) { accounts.push({ username, password, role: role || 'player', banned: false }); }
+  else { if (role) a.role = role; a.banned = false; }
+  saveAccounts(accounts);
+}
+
+// ----- live presence (online only) -----
+function startNetSync() {
+  stopNetSync();
+  if (!NET.online || !NET.token) return;
+  NET.presenceTimer = setInterval(netSendPresence, 2000);
+  NET.pollTimer = setInterval(netPollPresence, 2000);
+  netSendPresence(); netPollPresence();
+}
+function stopNetSync() {
+  if (NET.presenceTimer) { clearInterval(NET.presenceTimer); NET.presenceTimer = null; }
+  if (NET.pollTimer) { clearInterval(NET.pollTimer); NET.pollTimer = null; }
+}
+function netSendPresence() {
+  if (!NET.online || !NET.token || !G.char || !G.map) return;
+  NET.post('/api/presence', { token: NET.token, name: G.char.name, cls: G.char.cls, level: G.char.level, mapId: G.char.mapId, x: G.char.px, y: G.char.py }).catch(() => {});
+}
+async function netPollPresence() {
+  if (!NET.online || !NET.token || !G.char) return;
+  try {
+    const res = await NET.get('/api/presence?map=' + encodeURIComponent(G.char.mapId) + '&token=' + encodeURIComponent(NET.token));
+    if (res.ok && res.data && Array.isArray(res.data.players)) {
+      const prev = {};
+      (G.netPlayers || []).forEach(p => { prev[p.name] = p; });
+      G.netPlayers = res.data.players.map(p => ({
+        name: p.name, cls: p.cls, level: p.level || 1,
+        x: (typeof p.x === 'number') ? p.x : 130,
+        y: (typeof p.y === 'number') ? p.y : 130,
+        bobPhase: prev[p.name] ? prev[p.name].bobPhase : Math.random() * Math.PI * 2
+      }));
+      if (typeof updatePresence === 'function') updatePresence();
+    }
+  } catch (e) { /* ignore: never break the loop */ }
+}
+</script>
+
+
+<script>
 // ===== LOCAL STORAGE DATABASE =====
 const Store = {
   get(key) { try { return JSON.parse(localStorage.getItem('mu_'+key)); } catch { return null; } },
@@ -743,12 +840,24 @@ function showAuthTab(tab) {
     document.getElementById('register-form').classList.remove('hidden');
   }
 }
-function doRegister(e) {
+async function doRegister(e) {
   e.preventDefault();
   const u = document.getElementById('reg-username').value.trim();
   const p = document.getElementById('reg-password').value;
   if (u.length < 3 || u.length > 16) return showErr('Username must be 3-16 chars');
   if (p.length < 4) return showErr('Password must be 4+ chars');
+  // ONLINE: register against the server, mirror locally, then continue as normal.
+  if (NET.online) {
+    try {
+      const res = await NET.post('/api/register', { username: u, password: p });
+      if (!res.ok || !res.data || res.data.error) return showErr((res.data && res.data.error) || 'Registration failed');
+      NET.token = res.data.token; NET.username = u; NET.role = res.data.role || 'player';
+      ensureLocalAccount(u, p, NET.role);
+      currentUser = u; Store.set('session', u);
+      return loadCharSelect();
+    } catch (err) { /* network hiccup -> fall back to local behaviour */ }
+  }
+  // OFFLINE: original local behaviour (unchanged)
   const accounts = getAccounts();
   if (accounts.find(a => a.username === u)) return showErr('Username already exists');
   // First account ever, or the reserved name 'admin', becomes an admin; everyone else a player.
@@ -759,10 +868,25 @@ function doRegister(e) {
   Store.set('session', u);
   loadCharSelect();
 }
-function doLogin(e) {
+async function doLogin(e) {
   e.preventDefault();
   const u = document.getElementById('login-username').value.trim();
   const p = document.getElementById('login-password').value;
+  // ONLINE: authenticate against the server first.
+  if (NET.online) {
+    try {
+      const res = await NET.post('/api/login', { username: u, password: p });
+      if (res.ok && res.data && res.data.token) {
+        NET.token = res.data.token; NET.username = u; NET.role = res.data.role || 'player';
+        ensureLocalAccount(u, p, NET.role);
+        currentUser = u; Store.set('session', u);
+        return loadCharSelect();
+      }
+      if (res.data && res.data.error) return showErr(res.data.error);
+      // otherwise fall through and try local credentials
+    } catch (err) { /* network hiccup -> fall back to local */ }
+  }
+  // OFFLINE: original local behaviour (unchanged)
   const accounts = getAccounts();
   const acc = accounts.find(a => a.username === u && a.password === p);
   if (!acc) return showErr('Invalid credentials');
@@ -771,7 +895,7 @@ function doLogin(e) {
   Store.set('session', u);
   loadCharSelect();
 }
-function doLogout() { Store.del('session'); currentUser = null; showScreen('screen-auth'); }
+function doLogout() { stopNetSync(); NET.token = null; Store.del('session'); currentUser = null; showScreen('screen-auth'); }
 function showErr(msg) { document.getElementById('auth-error').textContent = msg; }
 </script>
 
@@ -958,11 +1082,31 @@ function animateCharsel() {
 
 <script>
 // ===== GAME ENGINE =====
-let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bot:null, botCd:0, ghosts:[] };
+// G.bots replaces the old single G.bot: an array of 2-4 allied companions. G.netPlayers
+// holds live online players from the presence poll. (Legacy note: code that referenced the
+// single G.bot has been migrated to iterate G.bots.)
+let G = { char:null, inv:[], map:null, mobs:[], target:null, moveTo:null, atkCd:0, running:false, lastT:0, dmgNums:[], portalAnim:0, tileVar:[], particles:new Particles(300), ambientTimer:0, slashEffects:[], deathEffects:[], stats:null, bots:[], ghosts:[], netPlayers:[] };
 let canvas, ctx;
 
 // Recompute derived combat stats from char + equipped items
 function recompute(){ G.stats = computeStats(G.char, G.inv); }
+
+// Migrate old saves: unequip any gear whose class requirement the character no longer
+// satisfies (e.g. an Elf that had equipped a Dark Knight set before class restrictions
+// existed). Only the hard class rule is enforced here so legitimately-earned gear that
+// is merely a few levels/stats short is left alone. Null-safe against missing fields.
+function migrateLoadout(){
+  if (!G.char || !Array.isArray(G.inv)) return;
+  let changed = false;
+  G.inv.forEach(i => {
+    if (!i || !i.equipped) return;
+    const it = ITEMS[i.itemId];
+    if (it && it.reqClass && it.reqClass.length && !it.reqClass.includes(G.char.cls)) {
+      i.equipped = 0; changed = true;
+    }
+  });
+  if (changed) { recompute(); saveInv(G.char.id, G.inv); }
+}
 
 function enterGame(charId) {
   const chars = getChars();
@@ -970,7 +1114,8 @@ function enterGame(charId) {
   if (!G.char) return;
   G.inv = getInv(charId);
   recompute();
-  G.bot = null; G.ghosts = [];
+  migrateLoadout();
+  G.bots = []; G.ghosts = []; G.netPlayers = [];
   loadMap(G.char.mapId);
   showScreen('screen-game');
   canvas = document.getElementById('game-canvas');
@@ -983,6 +1128,7 @@ function enterGame(charId) {
   G.tileVar = Array.from({length:256*256}, () => Math.random()*0.15-0.075);
   buildActions();
   updateUI();
+  startNetSync();
   gameLog('Welcome to '+G.map.name+'!','system');
   requestAnimationFrame(gameLoop);
 }
@@ -1008,11 +1154,11 @@ function loadMap(mapId) {
   updatePresence();
 }
 
-// ===== IN-WORLD PRESENCE (client-side multiplayer-style simulation) =====
-// NOTE: This game has no server. "Other players" are simply the OTHER characters
-// saved in THIS browser's localStorage. We surface any of them that are standing on
-// the current map as non-interactive "ghost" players. They cannot be attacked, do not
-// collide, and there is no PVP -- it is purely a cosmetic, presence-only illusion.
+// ===== IN-WORLD PRESENCE (offline ghosts + optional online players) =====
+// OFFLINE: "ghost players" are the OTHER characters saved in THIS browser's localStorage
+// that are standing on the current map -- shown as semi-transparent, non-interactive figures
+// (no attack, no collision, no PVP). When the game is served by the backend (ONLINE mode),
+// real players from the live presence poll are drawn separately via G.netPlayers.
 function gatherGhosts(mapId) {
   G.ghosts = [];
   if (!G.char) return;
@@ -1036,14 +1182,23 @@ function updatePresence() {
   const box = document.getElementById('presence-box');
   if (!box || !G.char) return;
   const ghosts = G.ghosts || [];
+  const bots = G.bots || [];
+  const net = G.netPlayers || [];
   const myCol = (CLASS_DATA[G.char.cls] || {}).color || '#ffd700';
-  const count = 1 + ghosts.length + (G.bot ? 1 : 0);
+  const count = 1 + ghosts.length + bots.length + net.length;
   let html = `<div class="pres-title">Players Here (${count})</div>`;
   html += `<div class="pres-row"><span class="pres-dot" style="color:${myCol};">●</span> ${G.char.name} <span style="color:#88ff88;">(you)</span></div>`;
-  if (G.bot) {
-    const bc = (CLASS_DATA[G.bot.cls] || {}).color || '#33d6c0';
-    html += `<div class="pres-row"><span class="pres-dot" style="color:${bc};">●</span> ${G.bot.name}</div>`;
-  }
+  // live online players first (most relevant)
+  net.forEach(p => {
+    const col = (CLASS_DATA[p.cls] || {}).color || '#66dd88';
+    html += `<div class="pres-row"><span class="pres-dot" style="color:${col};">●</span> ${p.name} <span style="color:#3fd06a;">[online]</span></div>`;
+  });
+  // companion bots (presented as players)
+  bots.forEach(b => {
+    const bc = (CLASS_DATA[b.cls] || {}).color || '#33d6c0';
+    html += `<div class="pres-row"><span class="pres-dot" style="color:${bc};">●</span> ${b.name}</div>`;
+  });
+  // offline ghost players
   ghosts.forEach(g => {
     const col = (CLASS_DATA[g.cls] || {}).color || '#ccc';
     html += `<div class="pres-row"><span class="pres-dot" style="color:${col};">●</span> ${g.name} <span style="color:#667;">[offline]</span></div>`;
@@ -1078,15 +1233,25 @@ function classWeapon(cls){ return cls === 'dark_wizard' ? 'staff' : cls === 'fai
 
 function spawnBot(){
   const c = G.char;
-  const prev = G.bot;
-  G.bot = {
-    x: c.px - 12, y: c.py + 6, cd: 0,
-    name:  prev ? prev.name  : randomPlayerName(),
-    cls:   prev ? prev.cls   : randomBotClass(),
-    level: prev ? prev.level : Math.max(1, (c.level || 1) + (Math.floor(Math.random()*7) - 3)),
-    walkPhase: 0, moving: false, atkAnim: 0, facing: 1
-  };
-  G.botCd = 0;
+  // 2-4 companions per map (random count each map). Each is presented as another player.
+  const count = 2 + Math.floor(Math.random() * 3); // 2..4
+  const bots = [];
+  for (let i = 0; i < count; i++){
+    // spread them around the player so they don't stack on one spot
+    const angle = (Math.PI * 2) * (i / count);
+    const ring = 16 + (i % 2) * 6;
+    bots.push({
+      x: c.px + Math.cos(angle) * ring,
+      y: c.py + Math.sin(angle) * ring,
+      cd: Math.random() * 900,
+      name:  randomPlayerName(),
+      cls:   randomBotClass(),
+      level: Math.max(1, (c.level || 1) + (Math.floor(Math.random() * 7) - 3)),
+      walkPhase: Math.random() * 10, moving: false, atkAnim: 0, facing: 1,
+      offAngle: angle, ring: ring
+    });
+  }
+  G.bots = bots;
 }
 
 function buildActions() {
@@ -1255,48 +1420,67 @@ function playerDied() {
   G.char.px = s ? (s.x1+s.x2)/2 : 130;
   G.char.py = s ? (s.y1+s.y2)/2 : 130;
   G.target = null; G.moveTo = null;
-  if (G.bot) { G.bot.x = G.char.px - 12; G.bot.y = G.char.py + 6; }
+  if (G.bots) G.bots.forEach(b => { const a = b.offAngle || 0, r = b.ring || 16; b.x = G.char.px + Math.cos(a)*r; b.y = G.char.py + Math.sin(a)*r; });
   gameLog('You died! Respawning at the safe zone...','combat');
   saveGame();
 }
 function expForLevel(lv) { return Math.floor(100 * Math.pow(1.5, lv-1)); }
 
-// ===== BOT COMPANION (allied, invulnerable, no PVP) =====
+// ===== BOT COMPANIONS (allied, invulnerable, no PVP) =====
+// Each companion continuously FOLLOWS the player toward a personal anchor point spread
+// around the player (so they don't overlap). If a monster is close it darts in to attack
+// (~40% of player dmg) but is hard-tethered so it never strays more than ~80 units away,
+// always drifting back to the player. Bots advance their walk cycle whenever they move so
+// they visibly walk instead of standing frozen.
 function updateBot(dt){
-  const b = G.bot, c = G.char;
+  const c = G.char;
+  if (!G.bots || !G.bots.length) return;
+  for (let i = 0; i < G.bots.length; i++) updateOneBot(G.bots[i], c, dt, i);
+}
+function updateOneBot(b, c, dt, idx){
   if (!b) return;
-  if (G.botCd > 0) G.botCd -= dt;
+  if (b.cd > 0) b.cd -= dt;
   if (b.atkAnim > 0) b.atkAnim -= dt;
   const ox = b.x, oy = b.y;
-  const fdx = c.px - b.x, fdy = c.py - b.y;
-  const fdist = Math.sqrt(fdx*fdx + fdy*fdy) || 1;
-  // find nearest alive monster to the bot
+  const speed = 2.2;
+  // personal follow anchor (spread around the player using this bot's angle/ring)
+  const ang = (b.offAngle != null) ? b.offAngle : (idx * 1.7);
+  const ring = b.ring || 16;
+  const anchorX = c.px + Math.cos(ang) * ring;
+  const anchorY = c.py + Math.sin(ang) * ring;
+  // distance to the player (used for the tether)
+  const pdx = c.px - b.x, pdy = c.py - b.y;
+  const pdist = Math.hypot(pdx, pdy) || 1;
+  // nearest alive monster to this bot
   let near = null, nd = 1e9;
-  for (const m of G.mobs) { if (!m.alive) continue; const d = Math.hypot(m.x-b.x, m.y-b.y); if (d < nd) { nd = d; near = m; } }
-  if (near && nd < 55 && fdist < 90) {
-    // close in on the target but stay tethered to the player
-    if (nd > 16) { b.x += (near.x-b.x)/nd*2.0; b.y += (near.y-b.y)/nd*2.0; }
+  for (const m of G.mobs){ if (!m.alive) continue; const d = Math.hypot(m.x - b.x, m.y - b.y); if (d < nd){ nd = d; near = m; } }
+  if (near && nd < 60 && pdist < 76){
+    // engage the monster but stay tethered to the player
+    if (nd > 15){ b.x += (near.x - b.x) / nd * speed; b.y += (near.y - b.y) / nd * speed; }
     b.facing = (near.x >= b.x) ? 1 : -1;
-    if (G.botCd <= 0) { botAttack(near); G.botCd = 1300; b.atkAnim = 320; }
-  } else if (fdist > 16) {
-    b.x += fdx/fdist*2.2; b.y += fdy/fdist*2.2;
-    b.facing = (fdx >= 0) ? 1 : -1;
+    if (nd <= 18 && b.cd <= 0){ botAttack(near, b); b.cd = 1200 + Math.random() * 400; b.atkAnim = 320; }
+  } else {
+    // follow the player's personal anchor
+    const adx = anchorX - b.x, ady = anchorY - b.y;
+    const adist = Math.hypot(adx, ady) || 1;
+    if (adist > 3){ b.x += adx / adist * speed; b.y += ady / adist * speed; b.facing = (adx >= 0) ? 1 : -1; }
   }
-  // never stray too far from the player
-  if (fdist > 70) { b.x += fdx/fdist*4; b.y += fdy/fdist*4; }
+  // hard tether: never stray more than ~80 units from the player
+  if (pdist > 80){ b.x += pdx / pdist * (pdist - 80); b.y += pdy / pdist * (pdist - 80); }
   // animation bookkeeping: are we walking this frame, and advance the walk cycle
   const moved = Math.hypot(b.x - ox, b.y - oy);
-  b.moving = moved > 0.15;
-  b.walkPhase = (b.walkPhase || 0) + (b.moving ? moved * 0.6 : 0);
+  b.moving = moved > 0.12;
+  b.walkPhase = (b.walkPhase || 0) + (b.moving ? moved * 0.8 + 0.3 : 0);
 }
-function botAttack(m){
+function botAttack(m, b){
   const c = G.char;
   const st = G.stats || (G.stats = computeStats(c, G.inv));
-  // ~40% of player's max damage so the bot stays a helper, not a carry
+  // ~40% of player's max damage so the bots stay helpers, not carries
   let dmg = Math.max(1, Math.floor(st.dmgMax * 0.4 * (0.8 + Math.random()*0.4)));
   m.curHp -= dmg;
   addDmg(m.x, m.y-10, dmg, '#7fd6ff');
-  G.slashEffects.push({ x:m.x*4, y:m.y*4, life:12, maxLife:12, angle: Math.atan2(m.y-G.bot.y, m.x-G.bot.x) });
+  const bx = b ? b.x : c.px, by = b ? b.y : c.py;
+  G.slashEffects.push({ x:m.x*4, y:m.y*4, life:12, maxLife:12, angle: Math.atan2(m.y-by, m.x-bx) });
   G.particles.emit(m.x*4, m.y*4, 3, { speed:2, life:15, size:2, color:'#7fd6ff', type:'spark' });
   // bot kill credits the player (exp/zen/drops)
   if (m.curHp <= 0) killMonster(m);
@@ -1357,8 +1541,10 @@ function render() {
   G.mobs.forEach(m => { if (m.alive) drawMonster(m, cam); });
   // Other players present on this map (client-side ghosts: non-interactive, no PVP)
   if (G.ghosts && G.ghosts.length) G.ghosts.forEach(g => drawGhost(g, cam));
-  // Bot companion (allied helper)
-  if (G.bot) drawBot(G.bot, cam);
+  // Live ONLINE players (from the presence poll) drawn brighter than offline ghosts
+  if (G.netPlayers && G.netPlayers.length) G.netPlayers.forEach(p => drawNetPlayer(p, cam));
+  // Bot companions (allied helpers, shown as fake players)
+  if (G.bots && G.bots.length) G.bots.forEach(b => drawBot(b, cam));
   // Death effects
   G.deathEffects.forEach(d => {
     const sx = d.x - cam.x, sy = d.y - cam.y;
@@ -1499,11 +1685,11 @@ function drawPlayer(c, cam) {
   ctx.beginPath(); ctx.arc(px, py, 18, 0, Math.PI*2); ctx.fill();
   ctx.globalAlpha = 1;
   // Name
-  ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px MedievalSharp'; ctx.textAlign = 'center';
+  // Level shown on top, above the name
+  ctx.font = 'bold 9px "Press Start 2P", monospace'; ctx.fillStyle = '#ffe680'; ctx.textAlign = 'center';
+  ctx.fillText('Lv.' + c.level, px, py-30);
+  ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px MedievalSharp';
   ctx.fillText(c.name, px, py-20);
-  // Level badge
-  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(px+12,py-14,7,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px sans-serif'; ctx.fillText(c.level, px+12, py-11);
 }
 
 function drawMonster(m, cam) {
@@ -1895,9 +2081,10 @@ function drawHumanoid(px, py, color, name, level, opts){
     ctx.fillStyle = opts.tagColor || '#8899aa'; ctx.font = '8px MedievalSharp';
     ctx.fillText(opts.tag, px, y-13);
   }
-  // Level badge
-  ctx.fillStyle = 'rgba(0,0,0,'+(0.6*alpha)+')'; ctx.beginPath(); ctx.arc(px+12, y-16, 7, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px sans-serif'; ctx.fillText(level, px+12, y-13);
+  // Level shown on top, above the name (applies to bot + ghost players too)
+  ctx.globalAlpha = alpha;
+  ctx.font = 'bold 9px "Press Start 2P", monospace'; ctx.fillStyle = '#ffe680'; ctx.textAlign = 'center';
+  ctx.fillText('Lv.' + level, px, y-32);
   ctx.globalAlpha = 1;
 }
 
@@ -1956,6 +2143,24 @@ function drawGhost(g, cam){
     nameColor: '#bcd2ff',
     tag: '[offline]',
     tagColor: '#7d8aa0'
+  });
+}
+
+// Live ONLINE player from the server presence poll. Drawn at near-full alpha with a green
+// "[online]" tag so real players are visually distinct from the semi-transparent offline
+// ghosts. Non-interactive (no collision / no PVP), purely cosmetic in the client.
+function drawNetPlayer(p, cam){
+  const x = p.x*4 - cam.x, y = p.y*4 - cam.y;
+  if (x < -60 || x > canvas.width+60 || y < -60 || y > canvas.height+60) return;
+  const cd = CLASS_DATA[p.cls] || { color:'#66dd88' };
+  drawHumanoid(x, y, cd.color, p.name, p.level || 1, {
+    alpha: 0.9,
+    moving: false,
+    bobSeed: p.bobPhase || 0,
+    weapon: classWeapon(p.cls),
+    nameColor: '#bfffd0',
+    tag: '[online]',
+    tagColor: '#3fd06a'
   });
 }
 
@@ -2055,8 +2260,16 @@ function saveGame() {
   if (idx >= 0) chars[idx] = G.char;
   saveChars(chars);
   saveInv(G.char.id, G.inv);
+  // ONLINE: push this character to the server, throttled to ~once per 5s, fire-and-forget.
+  if (NET.online && NET.token) {
+    const now = Date.now();
+    if (now - NET.lastSync > 5000) {
+      NET.lastSync = now;
+      NET.post('/api/sync', { token: NET.token, character: G.char }).catch(() => {});
+    }
+  }
 }
-function saveAndQuit() { saveGame(); G.running = false; loadCharSelect(); }
+function saveAndQuit() { saveGame(); stopNetSync(); G.netPlayers = []; G.running = false; loadCharSelect(); }
 </script>
 
 
@@ -2100,6 +2313,48 @@ function itemStatsLine(inst){
   return parts.join(' · ');
 }
 
+// Base attribute line for an item DEFINITION (used by the shop, which shows raw items).
+function itemBaseStatsLine(itemId){
+  const it = ITEMS[itemId]; if (!it) return '';
+  const parts = [];
+  if (it.slot === 'weapon'){
+    const atk = (it.attack||0) + (it.magic||0);
+    parts.push('Atk '+atk);
+    if (it.magic) parts.push('Magic '+it.magic);
+  } else if (['armor','shield','helmet','boots'].includes(it.slot)){
+    parts.push('Def '+(it.defense||0));
+  }
+  if (it.healHp) parts.push('Heals '+it.healHp+' HP');
+  if (it.healMp) parts.push('Heals '+it.healMp+' MP');
+  return parts.join(' · ');
+}
+
+// Requirement line for an item. Each requirement is coloured RED when `char` does NOT
+// meet it, otherwise a muted green. Returns '' when the item has no requirements.
+// Null-safe: with no char (or no reqs) everything renders as satisfied.
+function itemReqHtml(itemId, char){
+  const it = ITEMS[itemId]; if (!it) return '';
+  const okCol = '#7a8a6a', badCol = '#ff5555';
+  const reqs = [];
+  if (it.reqClass && it.reqClass.length){
+    const names = it.reqClass.map(k => (CLASS_DATA[k]||{}).name || k).join(' / ');
+    const ok = !char || it.reqClass.includes(char.cls);
+    reqs.push(`<span style="color:${ok?okCol:badCol};">Class: ${names}</span>`);
+  }
+  if (it.reqLevel){
+    const ok = !char || (char.level||1) >= it.reqLevel;
+    reqs.push(`<span style="color:${ok?okCol:badCol};">Lv.${it.reqLevel}</span>`);
+  }
+  [['reqStr','str','STR'],['reqAgi','agi','AGI'],['reqEne','ene','ENE'],['reqVit','vit','VIT']].forEach(([rk,ck,lbl]) => {
+    if (it[rk]){
+      const ok = !char || (char[ck]||0) >= it[rk];
+      reqs.push(`<span style="color:${ok?okCol:badCol};">${it[rk]} ${lbl}</span>`);
+    }
+  });
+  if (!reqs.length) return '';
+  return `<br><small style="color:#6b5b3a;">Req: ${reqs.join(' · ')}</small>`;
+}
+
 function renderInventory() {
   const equipped = G.inv.filter(i => i.equipped);
   const bag = G.inv.filter(i => !i.equipped);
@@ -2107,7 +2362,7 @@ function renderInventory() {
   html += '<div style="color:#8b7355;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Equipped</div>';
   if (!equipped.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Nothing equipped</div>';
   equipped.forEach(i => { const it = ITEMS[i.itemId]; if (!it) return; const r = getItemRarity(it);
-    html += `<div class="item-card equipped rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span> <small style="color:#6b5b3a;">(${it.slot||''})</small><br><small style="color:#7a8a6a;">${itemStatsLine(i)}</small></span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
+    html += `<div class="item-card equipped rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span> <small style="color:#6b5b3a;">(${it.slot||''})</small><br><small style="color:#7a8a6a;">${itemStatsLine(i)}</small>${itemReqHtml(i.itemId, G.char)}</span><button class="item-btn" onclick="unequipItem('${i.uid}')">Unequip</button></div>`;
   });
   html += '<div style="color:#8b7355;font-size:12px;margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px;">Bag</div>';
   if (!bag.length) html += '<div style="color:#4a4030;font-size:12px;font-style:italic;">Empty</div>';
@@ -2115,7 +2370,7 @@ function renderInventory() {
     if (it.slot) btns += `<button class="item-btn" onclick="equipItem('${i.uid}')">Equip</button>`;
     if (it.type==='consumable') btns += `<button class="item-btn use" onclick="useItem('${i.uid}')">Use</button>`;
     btns += `<button class="item-btn sell" onclick="sellItem('${i.uid}')">Sell</button>`;
-    html += `<div class="item-card rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span><br><small style="color:#6b5b3a;">${itemStatsLine(i)||it.desc||''}</small></span><div style="display:flex;gap:4px;">${btns}</div></div>`;
+    html += `<div class="item-card rarity-${r}">${itemIconHtml(i.itemId)}<span style="flex:1;"><span style="color:${itemColor(i)};font-weight:bold;">${itemDisplayName(i)}</span><br><small style="color:#6b5b3a;">${itemStatsLine(i)||it.desc||''}</small>${itemReqHtml(i.itemId, G.char)}</span><div style="display:flex;gap:4px;">${btns}</div></div>`;
   });
   document.getElementById('panel-right').innerHTML = html;
 }
@@ -2123,7 +2378,18 @@ function renderInventory() {
 function renderStats() {
   const c = G.char, needed = expForLevel(c.level), canAdd = c.statPts > 0;
   const st = G.stats || (G.stats = computeStats(c, G.inv));
-  const ab = (stat) => canAdd ? `<button class="stat-add-btn" onclick="addStat('${stat}')">+</button>` : '';
+  // Per-attribute allocation controls: +1, +10, Max, and a free-number box + Add.
+  const ctrls = (stat) => !canAdd ? '' : `
+    <div class="stat-alloc">
+      <button class="stat-add-btn" onclick="addStat('${stat}',1)">+1</button>
+      <button class="stat-add-btn" onclick="addStat('${stat}',10)">+10</button>
+      <button class="stat-add-btn" onclick="addStat('${stat}','max')">Max</button>
+      <input id="statamt-${stat}" class="stat-amt" type="number" min="1" value="1">
+      <button class="stat-add-btn" onclick="addStatInput('${stat}')">Add</button>
+    </div>`;
+  const attr = (label, stat, val) => `
+    <div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value">${val}</span></div>
+    ${ctrls(stat)}`;
   document.getElementById('panel-right').innerHTML = `
     <div class="panel-title">Character Stats <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>
     <div style="color:#ffd700;text-align:center;margin:8px 0 14px;font-size:13px;background:rgba(255,215,0,0.05);padding:6px;border-radius:4px;border:1px solid rgba(255,215,0,0.15);">Available Points: <strong>${c.statPts}</strong></div>
@@ -2137,10 +2403,11 @@ function renderStats() {
     <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-value" style="color:#ff9933;">${st.crit.toFixed(1)}%</span></div>
     <div class="stat-row"><span class="stat-label">Atk Speed</span><span class="stat-value">${st.atkSpeed}</span></div>
     <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
-    <div class="stat-row"><span class="stat-label">Strength</span><span class="stat-value">${c.str} ${ab('str')}</span></div>
-    <div class="stat-row"><span class="stat-label">Agility</span><span class="stat-value">${c.agi} ${ab('agi')}</span></div>
-    <div class="stat-row"><span class="stat-label">Vitality</span><span class="stat-value">${c.vit} ${ab('vit')}</span></div>
-    <div class="stat-row"><span class="stat-label">Energy</span><span class="stat-value">${c.ene} ${ab('ene')}</span></div>
+    ${canAdd ? '<div style="color:#8b7355;font-size:11px;margin-bottom:6px;font-style:italic;">Allocate points: +1 / +10 / Max, or type an amount and press Add.</div>' : ''}
+    ${attr('Strength','str',c.str)}
+    ${attr('Agility','agi',c.agi)}
+    ${attr('Vitality','vit',c.vit)}
+    ${attr('Energy','ene',c.ene)}
     <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
     <div class="stat-row"><span class="stat-label">HP</span><span class="stat-value" style="color:#ff6666;">${c.hp}/${effMaxHp()}</span></div>
     <div class="stat-row"><span class="stat-label">MP</span><span class="stat-value" style="color:#6688ff;">${c.mp}/${effMaxMp()}</span></div>
@@ -2181,16 +2448,30 @@ function travelTo(mapId) {
   if (currentPanel === 'travel') renderTravel();
 }
 
-function addStat(stat) {
-  if (G.char.statPts <= 0) return;
-  G.char[stat]++;
-  G.char.statPts--;
-  const cd = CLASS_DATA[G.char.cls];
-  if (stat === 'vit') G.char.maxHp = cd.baseHp + (G.char.vit - cd.baseVit) * cd.hpPerVit;
-  if (stat === 'ene') G.char.maxMp = cd.baseMp + (G.char.ene - cd.baseEne) * cd.mpPerEne;
+// Allocate stat points. `amount` may be a number (default 1) or the string 'max' to
+// dump every remaining point into the stat. Clamps to available points, recomputes
+// HP/MP from the class formulas, then refreshes everything and saves.
+function addStat(stat, amount) {
+  const c = G.char;
+  if (c.statPts <= 0) return;
+  let amt = (amount === 'max') ? c.statPts : Math.floor(Number(amount));
+  if (!isFinite(amt) || amt < 1) amt = 1;
+  amt = Math.min(amt, c.statPts);
+  if (amt <= 0) return;
+  c[stat] += amt;
+  c.statPts -= amt;
+  const cd = CLASS_DATA[c.cls];
+  if (stat === 'vit') c.maxHp = cd.baseHp + (c.vit - cd.baseVit) * cd.hpPerVit;
+  if (stat === 'ene') c.maxMp = cd.baseMp + (c.ene - cd.baseEne) * cd.mpPerEne;
   recompute();
-  gameLog(`+1 ${stat}!`,'system');
+  gameLog(`+${amt} ${stat.toUpperCase()}!`,'system');
   renderStats(); updateUI(); saveGame();
+}
+// Read the per-stat number box and allocate that many points at once.
+function addStatInput(stat) {
+  const el = document.getElementById('statamt-'+stat);
+  const n = el ? parseInt(el.value, 10) : 1;
+  addStat(stat, isNaN(n) ? 1 : n);
 }
 
 function equipItem(uid) {
@@ -2198,6 +2479,24 @@ function equipItem(uid) {
   if (!item) return;
   const it = ITEMS[item.itemId];
   if (!it || !it.slot) return;
+  const c = G.char;
+  // ---- requirement checks: class, level, then primary stat ----
+  if (it.reqClass && it.reqClass.length && !it.reqClass.includes(c.cls)){
+    const names = it.reqClass.map(k => (CLASS_DATA[k]||{}).name || k).join(' / ');
+    gameLog(`Cannot equip ${it.name}: requires ${names}`, 'combat');
+    return;
+  }
+  if (it.reqLevel && (c.level||1) < it.reqLevel){
+    gameLog(`Cannot equip ${it.name}: requires Level ${it.reqLevel}`, 'combat');
+    return;
+  }
+  const statChecks = [['reqStr','str','STR'],['reqAgi','agi','AGI'],['reqEne','ene','ENE'],['reqVit','vit','VIT']];
+  for (const [rk, ck, lbl] of statChecks){
+    if (it[rk] && (c[ck]||0) < it[rk]){
+      gameLog(`Cannot equip ${it.name}: requires ${it[rk]} ${lbl}`, 'combat');
+      return;
+    }
+  }
   G.inv.forEach(i => { if (i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].slot === it.slot) i.equipped = 0; });
   item.equipped = 1;
   recompute();
@@ -2407,16 +2706,25 @@ function adminGrantItem(charId){
 }
 
 // ===== GLOBAL RANKING / LEADERBOARD =====
-function openRanking(){
-  renderRanking();
+async function openRanking(){
+  await renderRanking();
   document.getElementById('ranking-modal').classList.remove('hidden');
 }
 function closeRanking(){ document.getElementById('ranking-modal').classList.add('hidden'); }
 
-function renderRanking(){
-  // Gather ALL characters across every account, rank by level then exp.
-  const chars = getChars().slice().sort((a,b) => (b.level - a.level) || ((b.exp||0) - (a.exp||0)));
-  const top = chars.slice(0, 50);
+async function renderRanking(){
+  // ONLINE: pull the global leaderboard from the server. OFFLINE: rank local characters.
+  let top = null;
+  if (NET.online) {
+    try {
+      const res = await NET.get('/api/ranking');
+      if (res.ok && res.data && Array.isArray(res.data.ranking)) top = res.data.ranking;
+    } catch (e) { /* fall back to local */ }
+  }
+  if (!top) {
+    // Gather ALL characters across every account, rank by level then exp.
+    top = getChars().slice().sort((a,b) => (b.level - a.level) || ((b.exp||0) - (a.exp||0))).slice(0, 50);
+  }
   let rows;
   if (!top.length) {
     rows = '<tr><td colspan="6" style="color:#6b5b3a;">No characters have been created yet.</td></tr>';
@@ -2455,8 +2763,9 @@ function openShop(shopId, npcName) {
   panel.classList.remove('hidden');
   let html = `<div class="panel-title">${npcName || 'Shop'} <button onclick="document.getElementById('panel-right').classList.add('hidden');currentPanel=null;" style="float:right;background:none;border:none;color:#6b5b3a;cursor:pointer;font-size:18px;">✕</button></div>`;
   items.forEach(itemId => { const it = ITEMS[itemId]; const r = getItemRarity(it);
+    const stats = itemBaseStatsLine(itemId);
     html += `<div class="item-card rarity-${r}">
-      ${itemIconHtml(itemId)}<span style="flex:1;">${it.name}<br><small style="color:#6b5b3a;">${it.desc||''}</small><br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
+      ${itemIconHtml(itemId)}<span style="flex:1;">${it.name}<br>${stats?`<small style="color:#7a8a6a;">${stats}</small><br>`:''}<small style="color:#6b5b3a;">${it.desc||''}</small>${itemReqHtml(itemId, G.char)}<br><small style="color:#ffcc00;">💰 ${it.price} Zen</small></span>
       <button class="item-btn" onclick="buyItem('${itemId}')" style="border-color:#8b6914;color:#ffd700;">Buy</button>
     </div>`;
   });
@@ -2476,6 +2785,9 @@ function buyItem(itemId) {
 
 // ===== INIT =====
 (function() {
+  // Kick off online-mode detection (fire-and-forget). On file:// or with no server this
+  // resolves to NET.online=false and the game runs in pure localStorage offline mode.
+  NET.init();
   migrateAccounts();
   let session = Store.get('session');
   // Don't auto-resume a session for a deleted or banned account.

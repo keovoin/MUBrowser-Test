@@ -123,12 +123,33 @@ The client-side account system now supports **roles** and **moderation**:
 - It collects **all** characters across **all** local accounts, sorts by **level** (then **EXP**), and shows up to the **top 50**: rank, character name, owner, class (in the class colour), level and current map.
 - The top three are marked with 🥇 🥈 🥉 and a highlighted row; your own characters are subtly accented.
 
-### Other Players & Your Companion (client-side, no server)
-> **How the "multiplayer" feel works (honest explanation):** This game has **no server and no real networking**. The sense of a populated world is created entirely on your own machine:
+### Other Players & Your Companions
+> **How the populated world works (honest explanation):** The game runs in one of two modes.
 >
-> - **Ghost players** — any *other* characters you have saved in **this browser** that happen to be standing on the **same map** appear in the world as semi-transparent figures, drawn exactly like real players, with their name and a small `[offline]` tag. They are purely cosmetic: they **cannot be attacked, do not collide, and there is no PVP**.
-> - **Your companion** — the allied helper that follows you and fights monsters is now presented as **another player**: it is drawn with the **same character art as you**, shows a **random player-style name floating above its head** (instead of "BOT"), and now **animates** — it visibly **walks** (leg/step + body bob) when moving and plays a **sword-swing animation** when attacking, so it never looks frozen on screen. Under the hood it is still a client-side allied bot (invulnerable, no PVP); the player-style presentation simply makes the world feel busier and more alive.
-> - **"Players Here" panel** — a small presence list in the corner of the game UI shows everyone currently on your map: **you** (marked `(you)`), your companion, and any ghost players.
+> - **Offline mode** (opening `docs/index.html` directly, or any static host) — there is **no real networking**. The sense of a busy world is created locally:
+>   - **Ghost players** — any *other* characters you have saved in **this browser** standing on the **same map** appear as semi-transparent figures, drawn exactly like real players with their name and a small `[offline]` tag. They are purely cosmetic: **cannot be attacked, do not collide, no PVP**.
+>   - **Companion bots** — every map now spawns **2–4 allied companions** presented as *other players*: each has its **own random player-style name floating above its head** (instead of "BOT"), a **random class**, a **level near yours**, and the **same character art as you**. They **continuously follow you** (spread around you so they don't overlap), **dart in to attack nearby monsters** (~40% of your damage, invulnerable, no PVP) and are **hard-tethered** so they never wander more than ~80 units away. They **visibly walk** (leg/step + body bob) when moving and play a **sword/staff/bow swing** when attacking, so they never look frozen. Their kills credit **you** (EXP/Zen/drops).
+>   - Every companion also shows **Lv.X above its head**, just like the player and ghost players.
+>
+> - **Online mode** (served by the included Node server / Fly.io) — when `/api/health` responds, the client switches to **real cross-device multiplayer** for accounts, the **global ranking**, and **live presence**: real players currently on your map are drawn at near-full opacity with a green `[online]` tag (distinct from the faded offline ghosts), and your character is broadcast every ~2 seconds. If the server is unreachable the game silently falls back to offline mode — nothing blocks the UI.
+>
+> - **"Players Here" panel** — the corner presence list shows everyone on your map: **you** (`(you)`), any **online** players, your **companions**, and any **offline** ghost players.
+
+### Item Requirements & Attributes
+- Gear now has **class restrictions** and **requirements**:
+  - Swords → **Dark Knight**, Staves → **Dark Wizard**, Bows → **Fairy Elf**.
+  - Heavy armor/shields/helmets → **Dark Knight**, robes → **Dark Wizard**, light armor → **Fairy Elf**. Boots are usable by **any class**.
+  - Each piece also has a **level requirement** and a **primary-stat requirement** (STR for DK gear, ENE for Wizard gear, AGI for Elf gear) scaled to its power — e.g. Blade needs Lv.50 & 50 STR, Elven Bow needs Lv.30 & 40 AGI, Serpent Staff needs Lv.30 & 40 ENE.
+- **Enforcement**: trying to equip gear you don't qualify for is blocked with a clear red log message (*"Cannot equip Blade: requires Dark Knight"* / *"requires Level 50"* / *"requires 50 STR"*). So a **Fairy Elf can no longer wear Dark Knight sets.**
+- **Old saves are migrated**: any previously-equipped item that violates the new class rule is automatically unequipped the next time you enter the game.
+- **Inventory and shop cards** now display each item's **attributes** (attack/defense incl. `+plus`, additional option, excellent options, luck) **and its requirements** (class / level / stat). A requirement renders in **red** when your current character doesn't meet it, otherwise in a muted green.
+
+### Bulk Stat Allocation
+- The Stats panel (📊) lets you spend many points at once per attribute: **+1**, **+10**, **Max** (dumps all remaining points), and a free **number box + Add** button. Allocations are clamped to your available points, recompute max HP/MP, and save instantly.
+
+### Online Multiplayer (optional backend)
+- The repo ships a **zero-dependency Node server** (`server.js`) that serves the game and exposes a small API (`/api/health`, `/api/register`, `/api/login`, `/api/characters`, `/api/sync`, `/api/ranking`, `/api/presence`). Run `node server.js` and open `http://localhost:8080`.
+- The single-file client **auto-detects** online mode: over http/https it checks `/api/health`; if reachable it uses the server for auth, syncs your character every ~5s, pulls the global ranking, and shows **live presence** of real players. Over `file://` (or if the server is down) it stays in pure **localStorage offline mode** — identical to before.
 
 ### Item Images
 - Inventory and shop item cards now show **real MU Online item icons**.
@@ -287,3 +308,54 @@ MUBrowser-Test/
 ## 📝 License
 
 Free to use, modify, and share.
+
+
+
+---
+
+## ☁️ Online Multiplayer on Fly.io (real running server)
+
+GitHub Pages / Netlify host the game as a **static, offline** experience (each browser is its own world). To get a **real always-on server** with **shared accounts, a global leaderboard, and live players you can see moving on the same map across devices**, deploy the included server to **Fly.io**.
+
+### What makes it "stay running"
+Fly.io runs `server.js` inside a Docker container and **keeps the process alive / auto-restarts it** for you. With `auto_stop_machines` it can also scale to zero when idle and wake on the next request (cheaper). You don't manage uptime yourself.
+
+### Files involved
+| File | Purpose |
+|------|---------|
+| `server.js` | Zero-dependency Node server: serves `docs/` + online APIs (accounts, sync, ranking, live presence) |
+| `Dockerfile` | Tiny `node:20-alpine` image |
+| `fly.toml` | Fly app config (port 8080, persistent volume at `/data`) |
+| `.github/workflows/fly-deploy.yml` | Auto-deploy on every push to `main` |
+
+### Deploy steps
+
+**Option 1 — From your own machine (needs flyctl):**
+```bash
+# 1. Install flyctl: https://fly.io/docs/flyctl/install/
+fly auth login
+# 2. Launch (uses the included fly.toml; pick a unique app name)
+fly launch --no-deploy
+# 3. Create the persistent volume (same region as fly.toml, e.g. sin)
+fly volumes create mu_data --size 1 --region sin
+# 4. Deploy
+fly deploy
+# 5. Open it
+fly open
+```
+
+**Option 2 — Auto-deploy via GitHub Actions (no local install):**
+1. Create the app + volume once (Option 1 steps 2–3, or via the Fly dashboard).
+2. Create a deploy token: `fly tokens create deploy -x 999999h`
+3. In GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `FLY_API_TOKEN`  Value: *(the token)*
+4. Push to `main` — the workflow builds and deploys automatically.
+
+### Online vs offline behavior
+- When the game is opened from your **Fly URL** (`https://<app>.fly.dev`), it detects the server via `/api/health` and switches to **ONLINE mode**: register/login go through the server, your character is synced to the cloud, the **Ranking** is global, and **real players** on your map are drawn live (green `[online]` tag) alongside the AI companions.
+- When opened from **GitHub Pages, Netlify, or a local file**, there is no server, so it runs in **OFFLINE mode** exactly as before (localStorage, AI companions, local ranking). Nothing breaks.
+
+### Server API (for reference)
+`GET /api/health` · `POST /api/register` · `POST /api/login` · `GET /api/characters?token=` · `POST /api/sync` · `GET /api/ranking` · `POST /api/presence` · `GET /api/presence?map=&token=`
+
+> Note: passwords are pbkdf2-hashed and accounts/characters persist on the Fly volume. Live presence is in-memory (a player is "online" for 10s after their last heartbeat).
