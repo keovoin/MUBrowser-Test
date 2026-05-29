@@ -1434,7 +1434,7 @@ function toggleAFK() {
   afkMode = !afkMode;
   const b = document.getElementById('btn-afk');
   if (b) { b.style.background = afkMode ? '#1e3a1e' : ''; b.style.borderColor = afkMode ? '#6f6' : ''; b.style.color = afkMode ? '#6f6' : ''; }
-  gameLog('AFK Mode ' + (afkMode ? 'ON — auto-attack + auto-level + auto-potion' : 'OFF'), 'system');
+  gameLog('AFK Mode ' + (afkMode ? 'ON — auto-attack + auto-potion' : 'OFF'), 'system');
 }
 function afkTick(dt) {
   if (!afkMode) return;
@@ -1462,14 +1462,7 @@ function afkTick(dt) {
     const pot = G.inv.find(i => !i.equipped && ITEMS[i.itemId] && ITEMS[i.itemId].healHp);
     if (pot) useItem(pot.uid);
   }
-  // Auto-level: allocate stat points to main stat
-  if (c.statPts > 0) {
-    const cd = CLASS_DATA[c.cls] || {};
-    const main = c.cls === 'dark_wizard' ? 'ene' : (c.cls === 'fairy_elf' ? 'agi' : 'str');
-    c[main] += c.statPts; c.statPts = 0;
-    recompute(); updateUI(); saveGame();
-    gameLog('AFK auto-allocated stats to ' + main.toUpperCase(), 'system');
-  }
+  // (Stats are allocated manually by the user, not auto)
 }
 
 function update(dt) {
@@ -1518,23 +1511,19 @@ function update(dt) {
 
 <script>
 // ===== COMBAT =====
-// Derived combat stats from class formula + equipped item instance bonuses
+// Real MU Online stat formulas
 function computeStats(char, inv){
-  const cd = CLASS_DATA[char.cls] || {};
+  const cls = char.cls;
   inv = inv || [];
   const eq = inv.filter(i => i.equipped);
-  // base damage from attributes + level scaling (level contributes directly to damage)
-  let base = char.str*(cd.dmgPerStr||0) + char.agi*(cd.dmgPerAgi||0);
-  if (cd.dmgPerEne) base += char.ene*cd.dmgPerEne;
-  base += char.level * 2; // level bonus: +2 damage per level
-  let weaponAtk = 0, defense = 0;
+  let weaponAtk = 0, armorDef = 0;
   let dmgPct = 0, defPct = 0, lifePct = 0, manaPct = 0, atkSpeedBonus = 0, zenPct = 0, luckCount = 0;
   eq.forEach(i => {
     const it = ITEMS[i.itemId]; if (!it) return;
-    const plusBonus = Math.round((i.plus||0) * 1.5);
+    const plusBonus = Math.round((i.plus||0) * 3);
     const addOpt = i.addOpt || 0;
     if (it.slot === 'weapon') weaponAtk += (it.attack||0) + (it.magic||0) + plusBonus + addOpt;
-    if (['armor','shield','helmet','boots'].includes(it.slot)) defense += (it.defense||0) + plusBonus + addOpt;
+    if (['armor','shield','helmet','boots'].includes(it.slot)) armorDef += (it.defense||0) + Math.round((i.plus||0)*2) + addOpt;
     if (i.luck) luckCount++;
     (i.exc||[]).forEach(o => {
       if (o.indexOf('Damage') >= 0) dmgPct += 2;
@@ -1545,18 +1534,47 @@ function computeStats(char, inv){
       else if (o.indexOf('ZenDrop') >= 0) zenPct += 30;
     });
   });
-  // Level and AGI contribute to defense (so stats actually help survivability)
-  defense += Math.floor(char.level * 0.5) + Math.floor(char.agi * 0.15);
-  const baseDmg = base + weaponAtk;
-  let dmgMin = Math.max(1, Math.floor(baseDmg * 0.8));
-  let dmgMax = Math.max(dmgMin, Math.floor(baseDmg * 1.2));
+  // === DAMAGE: DK=STR*1.2+AGI*0.2, DW=ENE*1.5+AGI*0.2, Elf=AGI*1.0+STR*0.5 ===
+  let baseDmg;
+  if (cls === 'dark_knight') baseDmg = char.str * 1.2 + char.agi * 0.2 + weaponAtk;
+  else if (cls === 'dark_wizard') baseDmg = char.ene * 1.5 + char.agi * 0.2 + weaponAtk;
+  else baseDmg = char.agi * 1.0 + char.str * 0.5 + weaponAtk;
+  let dmgMin = Math.max(1, Math.floor(baseDmg * 0.85));
+  let dmgMax = Math.max(dmgMin + 1, Math.floor(baseDmg * 1.15));
   if (dmgPct) { dmgMin = Math.floor(dmgMin*(1+dmgPct/100)); dmgMax = Math.floor(dmgMax*(1+dmgPct/100)); }
+  // === ATTACK SUCCESS RATE (PvM): Level*5 + AGI*1.5 + STR/4 ===
+  const attackRate = Math.floor(char.level * 5 + char.agi * 1.5 + char.str / 4);
+  // === DEFENSE: AGI/4 + armor + class bonus ===
+  let defense = Math.floor(char.agi / 4) + armorDef;
+  if (cls === 'dark_knight') defense += Math.floor(char.str / 10);
+  else if (cls === 'dark_wizard') defense += Math.floor(char.ene / 10);
   defense = Math.floor(defense * (1 + defPct/100));
-  let crit = Math.min(50, 5 + char.agi*0.1 + luckCount*5);
-  const atkSpeed = Math.round((cd.speed||1)*10 + atkSpeedBonus);
-  const bonusHp = Math.floor(char.maxHp * lifePct/100) + luckCount*20;
-  const bonusMp = Math.floor(char.maxMp * manaPct/100);
-  return { dmgMin, dmgMax, defense, crit, atkSpeed, zenPct, bonusHp, bonusMp, luckCount };
+  // === DEFENSE SUCCESS RATE (dodge): AGI/4 ===
+  const defenseRate = Math.floor(char.agi / 4);
+  // === ATTACK SPEED: DK=AGI/15, DW=AGI/20, Elf=AGI/10 ===
+  let atkSpeed;
+  if (cls === 'dark_knight') atkSpeed = Math.floor(char.agi / 15);
+  else if (cls === 'dark_wizard') atkSpeed = Math.floor(char.agi / 20);
+  else atkSpeed = Math.floor(char.agi / 10);
+  atkSpeed += atkSpeedBonus;
+  // === CRIT ===
+  let crit = Math.min(50, 5 + char.agi * 0.08 + luckCount * 5);
+  // === MAX HP: DK=60+Lv*3+VIT*3, DW=40+Lv*1.5+VIT*1.5, Elf=50+Lv*2+VIT*2 ===
+  let calcHp;
+  if (cls === 'dark_knight') calcHp = Math.floor(60 + char.level * 3 + char.vit * 3);
+  else if (cls === 'dark_wizard') calcHp = Math.floor(40 + char.level * 1.5 + char.vit * 1.5);
+  else calcHp = Math.floor(50 + char.level * 2 + char.vit * 2);
+  // === MAX MP: DK=20+Lv*0.5+ENE*1, DW=40+Lv*2+ENE*3, Elf=30+Lv*1.5+ENE*2 ===
+  let calcMp;
+  if (cls === 'dark_knight') calcMp = Math.floor(20 + char.level * 0.5 + char.ene * 1);
+  else if (cls === 'dark_wizard') calcMp = Math.floor(40 + char.level * 2 + char.ene * 3);
+  else calcMp = Math.floor(30 + char.level * 1.5 + char.ene * 2);
+  // Update char maxHp/maxMp from formula
+  char.maxHp = calcHp;
+  char.maxMp = calcMp;
+  const bonusHp = Math.floor(calcHp * lifePct / 100) + luckCount * 20;
+  const bonusMp = Math.floor(calcMp * manaPct / 100);
+  return { dmgMin, dmgMax, defense, defenseRate, attackRate, crit, atkSpeed, zenPct, bonusHp, bonusMp, luckCount, baseDmg };
 }
 function effMaxHp(){ return G.char.maxHp + (G.stats ? G.stats.bonusHp : 0); }
 function effMaxMp(){ return G.char.maxMp + (G.stats ? G.stats.bonusMp : 0); }
@@ -1564,25 +1582,51 @@ function effMaxMp(){ return G.char.maxMp + (G.stats ? G.stats.bonusMp : 0); }
 function doAttack(m) {
   const c = G.char;
   const st = G.stats || (G.stats = computeStats(c, G.inv));
-  // attack speed -> cooldown
-  G.atkCd = Math.max(400, 1100 - st.atkSpeed*30);
-  // player damage (random in computed range) + crit chance
+  // Attack speed -> cooldown (higher speed = faster attacks)
+  G.atkCd = Math.max(300, 1000 - st.atkSpeed * 25);
+  // === ATTACK SUCCESS CHECK: attackRate vs monster defense ===
+  // Hit chance = attackRate / (attackRate + monsterLevel * 10) — always at least 20%
+  const monDefRate = (m.level || 1) * 10;
+  const hitChance = Math.min(0.95, Math.max(0.2, st.attackRate / (st.attackRate + monDefRate)));
+  if (Math.random() > hitChance) {
+    // MISS
+    addDmg(m.x, m.y - 10, 'MISS', '#888888');
+    // Monster still hits back
+    const mRaw = (m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)));
+    // Player dodge check (defenseRate vs monster attack)
+    if (Math.random() < Math.min(0.5, st.defenseRate / (st.defenseRate + m.level * 5 + 50))) {
+      addDmg(c.px, c.py - 10, 'DODGE', '#88ddff');
+    } else {
+      const mDmg = Math.max(1, Math.floor(mRaw - st.defense));
+      c.hp = Math.max(0, c.hp - mDmg);
+      addDmg(c.px, c.py - 10, mDmg, '#ff4444');
+    }
+    if (c.hp <= 0) { playerDied(); }
+    updateUI();
+    return;
+  }
+  // === PLAYER HITS ===
   let pDmg = st.dmgMin + Math.floor(Math.random()*(st.dmgMax - st.dmgMin + 1));
   pDmg = Math.max(1, pDmg);
   const isCrit = Math.random()*100 < st.crit;
   if (isCrit) pDmg = Math.floor(pDmg * 1.5);
-  // monster damage uses its own dmgMin/dmgMax range, reduced by computed defense
-  const mRaw = (m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)));
-  const mDmg = Math.max(1, Math.floor(mRaw - st.defense*0.5 - c.agi*0.2));
   m.curHp -= pDmg;
-  c.hp = Math.max(0, c.hp - mDmg);
-  addDmg(m.x, m.y-10, pDmg, isCrit ? '#ff9933' : '#ffff00');
-  if (mDmg > 0) addDmg(c.px, c.py-10, mDmg, '#ff4444');
+  addDmg(m.x, m.y - 10, pDmg, isCrit ? '#ff9933' : '#ffff00');
   // Slash effect
   G.slashEffects.push({ x: m.x*4, y: m.y*4, life: 15, maxLife: 15, angle: Math.atan2(m.y-c.py, m.x-c.px) });
-  // Hit sparks
   G.particles.emit(m.x*4, m.y*4, 5, { speed:3, life:20, size:2, color: isCrit?'#ffddaa':'#ffff88', type:'spark' });
-  gameLog(`Hit ${m.name} for ${pDmg}${isCrit?' (CRIT!)':''}! Took ${mDmg} dmg.`,'combat');
+  // === MONSTER HITS BACK ===
+  const mRaw = (m.dmgMin||1) + Math.floor(Math.random()*Math.max(1,(m.dmgMax - m.dmgMin + 1)));
+  // Player dodge check
+  if (Math.random() < Math.min(0.5, st.defenseRate / (st.defenseRate + m.level * 5 + 50))) {
+    addDmg(c.px, c.py - 10, 'DODGE', '#88ddff');
+    gameLog(`Hit ${m.name} for ${pDmg}${isCrit?' (CRIT!)':''}! Dodged its attack.`,'combat');
+  } else {
+    const mDmg = Math.max(1, Math.floor(mRaw - st.defense));
+    c.hp = Math.max(0, c.hp - mDmg);
+    addDmg(c.px, c.py - 10, mDmg, '#ff4444');
+    gameLog(`Hit ${m.name} for ${pDmg}${isCrit?' (CRIT!)':''}! Took ${mDmg} dmg.`,'combat');
+  }
   if (m.curHp <= 0) { killMonster(m); }
   if (c.hp <= 0) { playerDied(); }
   updateUI();
@@ -2624,7 +2668,9 @@ function renderStats() {
     <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
     <div style="color:#ffd700;font-size:12px;margin:4px 0 6px;text-transform:uppercase;letter-spacing:1px;">Combat</div>
     <div class="stat-row"><span class="stat-label">Damage</span><span class="stat-value" style="color:#ffcc66;">${st.dmgMin} - ${st.dmgMax}</span></div>
+    <div class="stat-row"><span class="stat-label">Attack Rate</span><span class="stat-value" style="color:#88ff88;">${st.attackRate}</span></div>
     <div class="stat-row"><span class="stat-label">Defense</span><span class="stat-value" style="color:#88ccff;">${st.defense}</span></div>
+    <div class="stat-row"><span class="stat-label">Def Rate (Dodge)</span><span class="stat-value" style="color:#88ddff;">${st.defenseRate}</span></div>
     <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-value" style="color:#ff9933;">${st.crit.toFixed(1)}%</span></div>
     <div class="stat-row"><span class="stat-label">Atk Speed</span><span class="stat-value">${st.atkSpeed}</span></div>
     <div style="height:1px;background:rgba(139,105,20,0.2);margin:10px 0;"></div>
