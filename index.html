@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
 <title>MU Online - Browser Edition</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Press+Start+2P&display=swap');
@@ -420,6 +423,34 @@ body { font-family: 'MedievalSharp', serif; background: #050508; color: #e0d8c8;
 .rank-table tr.rank-top td { background: rgba(255,215,0,0.06); }
 .rank-table tr.rank-top td:first-child { font-size: 16px; }
 .rank-table tr.rank-me td { box-shadow: inset 3px 0 0 #88ff88; }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px), (pointer: coarse) {
+  body { touch-action: manipulation; overscroll-behavior: none; }
+  #game-canvas { touch-action: manipulation; }
+  .auth-container { min-width: 0 !important; width: 92vw !important; max-width: 440px; padding: 20px !important; }
+  #screen-charselect .auth-container { min-width: 0 !important; width: 94vw !important; }
+  .game-title { font-size: 32px !important; }
+  #panel-right { width: 85vw !important; max-width: 360px; right: 2vw !important; top: 36px !important; max-height: calc(100dvh - 50px) !important; font-size: 12px !important; padding: 10px !important; }
+  #ui-topbar { font-size: 11px !important; padding: 4px 8px !important; gap: 8px !important; flex-wrap: wrap; }
+  #ui-bars { gap: 3px !important; }
+  #ui-bars > div { min-width: 55px !important; }
+  #ui-actions { gap: 4px !important; }
+  #ui-actions .action-btn { width: 38px !important; height: 38px !important; font-size: 16px !important; }
+  #ui-log { width: 55vw !important; max-height: 80px !important; font-size: 10px !important; }
+  .modal-inner { width: 92vw !important; max-width: 420px; max-height: 85dvh; overflow-y: auto; }
+  #admin-modal .modal-inner { width: 94vw !important; }
+  #ranking-modal .modal-inner { width: 94vw !important; }
+  .item-card { font-size: 11px !important; padding: 5px !important; }
+  .item-btn { font-size: 10px !important; padding: 3px 6px !important; }
+}
+@media (max-height: 500px) {
+  #ui-topbar { padding: 2px 6px !important; font-size: 10px !important; }
+  #ui-bars > div { height: 14px !important; }
+  #ui-actions .action-btn { width: 32px !important; height: 32px !important; font-size: 14px !important; }
+  #ui-log { max-height: 50px !important; }
+  #panel-right { top: 26px !important; max-height: calc(100dvh - 32px) !important; }
+}
 </style>
 
 
@@ -1243,6 +1274,8 @@ function enterGame(charId) {
   resizeCanvas();
   window.onresize = resizeCanvas;
   canvas.onclick = handleClick;
+  // Mobile touch: single tap moves/attacks, multi-finger pinch-zoom allowed by browser
+  canvas.ontouchstart = (e) => { if (e.touches.length === 1) { e.preventDefault(); handleClick(e); } };
   G.running = true;
   G.lastT = Date.now();
   G.tileVar = Array.from({length:256*256}, () => Math.random()*0.15-0.075);
@@ -1564,7 +1597,7 @@ function killMonster(m) {
   G.particles.emit(m.x*4, m.y*4, m.boss?28:12, { speed:4, life:30, size:3, color:'#ff8844', type:'spark' });
   const c = G.char;
   const st = G.stats || (G.stats = computeStats(c, G.inv));
-  const expG = m.exp;
+  const expG = m.exp * EXP_MULT;
   let zenG = m.zen + Math.floor(Math.random()*m.zen*0.5);
   if (st.zenPct) zenG = Math.floor(zenG * (1 + st.zenPct/100));
   c.exp += expG; c.zen += zenG;
@@ -1595,7 +1628,11 @@ function playerDied() {
   gameLog('You died! Respawning at the safe zone...','combat');
   saveGame();
 }
-function expForLevel(lv) { return Math.floor(100 * Math.pow(1.5, lv-1)); }
+// EXP needed per level: polynomial scaling (not exponential - 1.5^49 was billions!)
+function expForLevel(lv) { return Math.floor(80 * lv * lv + 100 * lv); }
+// Admin-configurable EXP multiplier (persisted in localStorage)
+let EXP_MULT = parseInt(localStorage.getItem('mu_exp_mult')) || 1;
+function setExpMult(v) { EXP_MULT = Math.max(1, Math.min(1000, parseInt(v)||1)); localStorage.setItem('mu_exp_mult', EXP_MULT); }
 
 // ===== BOT COMPANIONS (allied, invulnerable, no PVP) =====
 // Each companion continuously FOLLOWS the player toward a personal anchor point spread
@@ -1661,8 +1698,9 @@ function botAttack(m, b){
 function handleClick(e) {
   const rect = canvas.getBoundingClientRect();
   const cam = getCamera();
-  const wx = (e.clientX - rect.left + cam.x) / 4;
-  const wy = (e.clientY - rect.top + cam.y) / 4;
+  const pt = (e.touches && e.touches[0]) ? e.touches[0] : (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : e;
+  const wx = (pt.clientX - rect.left + cam.x) / 4;
+  const wy = (pt.clientY - rect.top + cam.y) / 4;
   for (const m of G.mobs) {
     if (!m.alive) continue;
     if (Math.sqrt((m.x-wx)**2+(m.y-wy)**2) < 12) { G.target = m.uid; G.moveTo = {x:m.x,y:m.y}; gameLog(`Targeting ${m.name}`,'info'); return; }
@@ -2738,6 +2776,17 @@ function renderAdminPanel(){
   const chars = getChars();
   const escAttr = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   let html = '';
+  // ===== SERVER CONFIG (EXP multiplier, drop rate) =====
+  html += `<div style="background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:6px;padding:10px;margin-bottom:12px;">
+    <div style="color:#ffd700;font-size:12px;font-weight:bold;margin-bottom:6px;">⚙️ Server Config</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="color:#8b7355;font-size:12px;min-width:80px;">EXP Rate:</span>
+      <input type="number" id="admin-exp-mult" min="1" max="1000" value="${EXP_MULT}" style="width:60px;padding:4px;background:#111;border:1px solid #444;color:#ffd700;border-radius:4px;font-size:13px;text-align:center;">
+      <span style="color:#ffd700;font-size:13px;font-weight:bold;">x</span>
+      <button onclick="setExpMult(document.getElementById('admin-exp-mult').value);gameLog('EXP rate set to '+EXP_MULT+'x','system');renderAdminPanel();" style="padding:4px 10px;background:#16213e;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:11px;">Apply</button>
+    </div>
+    <div style="color:#6b5b3a;font-size:10px;">Current: <b style="color:#ffd700;">${EXP_MULT}x</b> EXP per kill. Set higher for faster leveling (e.g. 10x, 50x, 100x).</div>
+  </div>`;
   html += `<div class="admin-note">You are signed in as <b style="color:#ffd700;">${currentUser}</b> (${(currentAccount()||{}).role||'?'}). Admins manage everyone; GMs manage players only.</div>`;
   if (!accounts.length) { html += '<p style="color:#6b5b3a;">No accounts found.</p>'; }
   accounts.forEach(a => {
